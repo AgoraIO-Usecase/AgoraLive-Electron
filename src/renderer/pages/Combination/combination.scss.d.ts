@@ -1,5 +1,6 @@
 declare namespace CombinationScssNamespace {
   export interface ICombinationScss {
+    compositeMask: string;
     display: string;
     material: string;
   }

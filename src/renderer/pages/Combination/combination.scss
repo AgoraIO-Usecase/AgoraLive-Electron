@@ -1,9 +1,20 @@
 .display {
-  height: 280px;
+  position: relative;
+  height: 380px;
   background-color: rgb(240, 234, 234);
+}
+.compositeMask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  background-color: #00ffff;
+  opacity: 0.3;
+  height: 100%;
 }
 .material {
   display: flex;
-  height: 300px;
+  height: 200px;
   background-color: rgb(240, 234, 234);
 }

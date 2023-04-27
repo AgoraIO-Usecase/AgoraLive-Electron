@@ -90,6 +90,7 @@ class RtcSurfaceView extends Component<Props, State> {
     } else if (canvas.sourceType === VideoSourceType.VideoSourceRemote) {
       funcName = engine.setupRemoteVideo;
     } else {
+      console.log('------11111111updateRender')
       funcName = engine.setupLocalVideo;
     }
 
@@ -102,6 +103,7 @@ class RtcSurfaceView extends Component<Props, State> {
     } catch (e) {
       console.warn(e);
     }
+    console.log('------updateRender: ',canvas)
     funcName.call(this, { ...canvas, view: dom }, connection!);
   };
 

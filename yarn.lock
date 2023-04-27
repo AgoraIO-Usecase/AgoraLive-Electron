@@ -7365,9 +7365,9 @@
   "version" "1.0.1"
 
 "nan@^2.12.1":
-  "integrity" "sha512-UdAqHyFngu7TfQKsCBgAA6pWDkT8MAO7d0jyOecVhN5354xbLqdn8mV9Tat9gepAupm0bt2DbeaSC8vS52MuFA=="
-  "resolved" "https://registry.npmmirror.com/nan/-/nan-2.16.0.tgz"
-  "version" "2.16.0"
+  "integrity" "sha512-2ZTgtl0nJsO0KQCjEpxcIr5D+Yv90plTitZt9JBfQvVJDS5seMl3FOvsh3+9CoYWXf/1l5OaZzzF6nDm4cagaQ=="
+  "resolved" "https://registry.npmmirror.com/nan/-/nan-2.17.0.tgz"
+  "version" "2.17.0"
 
 "nanomatch@^1.2.9":
   "integrity" "sha512-fpoe2T0RbHwBTBUOftAfBPaDEi06ufaUai0mE6Yn1kacc3SnTErfb/h+X94VXzI64rKFHYImXSvdwGGCmwOqCA=="

@@ -55,6 +55,7 @@ export const isDebug = () => {
 export const getResourcePath = (filePath = './') => {
   let resourcePath;
   if (isDebug()) {
+    console.log('-----isDebug mode')
     resourcePath = path.resolve(
       `${__dirname}`,
       '../../../extraResources/',

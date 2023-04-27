@@ -22,14 +22,14 @@ const AppNew :React.FC = () => {
     return (
       <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline">
         <Item key="setting" icon={<SettingOutlined />}>
-          <Link to="/">应用设置</Link>
+          <Link to="/">Setting</Link>
         </Item>
-        <SubMenu key="sub1" icon={<GithubOutlined />} title="功能演示">
+        <SubMenu key="sub1" icon={<GithubOutlined />} title="Function Show">
           <Item key="combination" icon={<SettingOutlined />}>
-            <Link to="/combination">合图功能</Link>
+            <Link to="/combination">Composite Picture</Link>
           </Item>
           <Item key="transcode" icon={<SettingOutlined />}>
-            <Link to="/transcode">转码功能</Link>
+            <Link to="/transcode">TransCode</Link>
           </Item>      
         </SubMenu>
       </Menu>
@@ -53,7 +53,7 @@ const AppNew :React.FC = () => {
           {renderMenu()}
         </Sider>
         <Layout className='site-layout'>
-          <Content style={{ flex: 1 }}>
+          <Content style={{ flex: 1, overflow: 'auto' }}>
             { renderContent() }
           </Content>
         </Layout>
