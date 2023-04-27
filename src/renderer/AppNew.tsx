@@ -56,9 +56,6 @@ const AppNew :React.FC = () => {
           <Content style={{ flex: 1 }}>
             { renderContent() }
           </Content>
-          <Footer style={{ textAlign: 'center' }}>
-            {`Powered by Agora RTC SDK 1.3`}
-          </Footer>
         </Layout>
       </Layout>
     </Router>
