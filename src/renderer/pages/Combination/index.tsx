@@ -25,18 +25,40 @@ const test1Url = getResourcePath('test1.jpg')
 const test2Url = getResourcePath('test2.jpg')
 const test3Url = getResourcePath('test3.jpg')
 const test4Url = getResourcePath('test4.jpg')
+const max_width = 1280
+const max_height = 720
+
+function throttle<T extends any[]>(
+  func: (...args: T) => void,
+  delay: number
+): (...args: T) => void {
+  let timerId: ReturnType<typeof setTimeout> | null = null;
+
+  return function (...args: T) {
+    if (timerId === null) {
+      timerId = setTimeout(() => {
+        func.apply(this, args);
+        timerId = null;
+      }, delay);
+    }
+  };
+}
 
 const Combination: React.FC = () => {
   const video1Ref = useRef<HTMLDivElement>(null)
   const video2Ref = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
-  const [sources, setSources] = useState<TranscodingVideoStream[]>([])
+  //const [sources, setSources] = useState<TranscodingVideoStream[]>([])
+  //const [selectIndex, setSelectIndex] = useState(-1)
+  const sources = useRef<TranscodingVideoStream[]>([])
   const engine = useRef(createAgoraRtcEngine());
   const isMounted = useRef(false);
   const zoom = useRef(0)
+  const selectIndex = useRef(-1)
+  const lastPressPos = useRef({x:0,y:0})
   
 
-  const InitEngine = () => {
+  const initEngine = () => {
     engine.current.initialize({
       appId: Config.appId,
       logConfig: { filePath: Config.SDKLogPath },
@@ -72,6 +94,7 @@ const Combination: React.FC = () => {
 
     canavsDom?.addEventListener('mousedown', handleMouseDown)
     canavsDom?.addEventListener('mousemove', handleMouseMove)
+    canavsDom?.addEventListener('mouseup', handleMouseUp)
 
     //let style = canavsDom.offsetLeft
 
@@ -105,7 +128,7 @@ const Combination: React.FC = () => {
     try {
       engine.current.destroyRendererByView(video1Ref.current);
     } catch (e) {
-      console.warn(e);
+      console.error(e);
     }
 
     if (isOpen) {
@@ -126,10 +149,9 @@ const Combination: React.FC = () => {
   }
 
   const getLocalTransConfig = ()=> {
-    const max_width = 1280,
-      max_height = 720,
-      width = 300,
-      height = 300;
+    console.log('-----1111111111111')
+    const  width = 300,
+           height = 300;
     const streams: TranscodingVideoStream[] = []
     streams.push({
       sourceType: MediaSourceType.PrimaryCameraSource
@@ -166,7 +188,9 @@ const Combination: React.FC = () => {
       value.mirror = true;
     });
 
-    setSources(streams)
+    //setSources(streams)
+    sources.current = streams
+    
 
     return {
       streamCount: streams.length,
@@ -179,15 +203,35 @@ const Combination: React.FC = () => {
 
   const handleMouseDown = (e) => {
     console.log('----handleMouseDown e: ',e)
-    console.log('----handleMouseDown e: ',e.pageX)
+    selectIndex.current = -1
+    lastPressPos.current.x = e.offsetX
+    lastPressPos.current.y = e.offsetY
+    let index = getSelectNode(e.offsetX, e.offsetY)
+    selectIndex.current = index
+    console.log('----index: ',index)
+    console.log('----mouse down lastPressPos: ',lastPressPos.current)
+    console.log(sources)
+    //setSelectIndex(index)
+
   }
 
   const handleMouseMove = (e) => {
-    console.log('----handleMouseMove e: ',e)
+    if (selectIndex.current !== -1) {
+      console.log('----handleMouseMove e: ',e)
+      console.log('----mouse move lastPressPos: ',lastPressPos.current)
+    }
+    //let dx = Math.abs(e.offsetX - lastPressPos.current.x)
+    //let dy = Math.abs(e.offsetY - lastPressPos.current.y)
+    updateSources(selectIndex.current, e.offsetX, e.offsetY)
+    //const throttledFunc = throttle(updateSources, 200);
+    //throttledFunc(selectIndex.current, e.offsetX, e.offsetY)
+    //updateSources(selectIndex.current, dx, dy)
+
   }
 
   const handleMouseUp = (e) => {
     console.log('----handleMouseUp e: ',e)
+    selectIndex.current = -1
   }
 
   const handleOnClick = (e) => {
@@ -198,12 +242,40 @@ const Combination: React.FC = () => {
     setIsOpen(!isOpen)
   }
 
-  const getSelectNode = (posX, posY) => {
+  const updateSources = (index: number, posX: number, posY: number) => {
+    let newSources = [...sources.current]
+    if (index >= 0) {
+      console.log('updateSource index: ', index)
+      newSources[index].x = posX
+      newSources[index].y = posY
+      newSources[index].zOrder = 2
+      let config ={
+        streamCount: newSources.length,
+        VideoInputStreams: newSources,
+        videoOutputConfiguration: {
+          dimensions: { width: max_width, height: max_height },
+        },
+      }
+      console.log('updateSource config: ', config)
+      engine.current.updateLocalTranscoderConfiguration(config)
+      //setSources(newSources)
+      sources.current = newSources
+    }
+  }
 
+  const getSelectNode = (posX, posY) => {
+    let index = sources.current.findIndex((item) => {
+      let zoomX = Math.floor(item.x!*zoom.current)
+      let zoomY = Math.floor(item.y!*zoom.current)
+      let zoomW = Math.floor(item.width!*zoom.current)
+      let zoomH = Math.floor(item.height!*zoom.current)
+      return (posX >= zoomX && posY >= zoomY && posX <= (zoomX + zoomW) && posY <= (zoomY + zoomH))
+    })
+    return index
   }
 
   const updateLocalTranscoderConfiguration = (source) => {
-    
+
   }
 
   useEffect(() => {
@@ -220,7 +292,7 @@ const Combination: React.FC = () => {
 
   useEffect(() => {
     isMounted.current = true
-    InitEngine()
+    initEngine()
     return () => {
       console.log('unmonut component')
       isMounted.current = false
