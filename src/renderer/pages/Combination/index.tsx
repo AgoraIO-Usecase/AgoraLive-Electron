@@ -45,8 +45,10 @@ function throttle<T extends any[]>(
 }
 
 const Combination: React.FC = () => {
+  console.log('--------------------render()')
   const video1Ref = useRef<HTMLDivElement>(null)
   const video2Ref = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isOpen, setIsOpen] = useState(false)
   //const [sources, setSources] = useState<TranscodingVideoStream[]>([])
   //const [selectIndex, setSelectIndex] = useState(-1)
@@ -95,31 +97,6 @@ const Combination: React.FC = () => {
     canavsDom?.addEventListener('mousedown', handleMouseDown)
     canavsDom?.addEventListener('mousemove', handleMouseMove)
     canavsDom?.addEventListener('mouseup', handleMouseUp)
-
-    //let style = canavsDom.offsetLeft
-
-    const elem = document.createElement('div');
-    elem.className = 'compositeMask'
-    elem.style.position = 'absolute'
-    //elem.style.top = (canavsDom.offsetTop * 0.527778).toString()
-    //elem.style.left = (canavsDom.offsetLeft * 0.527778).toString()
-    elem.style.bottom = '0'
-    elem.style.right = '0'
-    elem.style.opacity = '0.3'
-    elem.style.backgroundColor = '#00ffff'
-    elem.style.width = '1280px'
-    elem.style.height = '720px'
-    //elem.style.zoom = '0.527778'
-    elem.style.zIndex = '2'
-    elem.addEventListener('mousedown', handleMouseDown)
-    elem.addEventListener('mousemove', handleMouseMove)
-    elem.addEventListener('mouseup', handleMouseUp)
-    //canavsDom?.insertAdjacentElement('beforebegin', elem);
-    //let attributes = children[0]?.attributes
-    //let style = attributes.getNamedItem('style')
-    //console.log('-----attributes: ',attributes)
-    //console.log('-----style: ',style)
-    console.log('-----children: ',canavsDom)
     console.log('-----rect: ',rect)
   }
 
@@ -183,14 +160,14 @@ const Combination: React.FC = () => {
       //value.y = 0;
       value.width = width;
       value.height = height;
-      value.zOrder = 1;
+      value.zOrder = index+1;
       value.alpha = 1;
       value.mirror = true;
     });
 
     //setSources(streams)
-    sources.current = streams
-    
+    sources.current = [...streams]
+    console.log('-----getLocalTransConfig sources: ', sources.current)
 
     return {
       streamCount: streams.length,
@@ -216,22 +193,25 @@ const Combination: React.FC = () => {
   }
 
   const handleMouseMove = (e) => {
-    if (selectIndex.current !== -1) {
-      console.log('----handleMouseMove e: ',e)
+    if (selectIndex.current >= 0) {
+      console.log('----handleMouseMove e: ',e.offsetX, e.offsetY)
       console.log('----mouse move lastPressPos: ',lastPressPos.current)
+      let dx = e.offsetX - lastPressPos.current.x
+      let dy = e.offsetY - lastPressPos.current.y
+      //updateSources(selectIndex.current, dx, dy)
+      //const throttledFunc = throttle(updateSources, 300);
+      //throttledFunc(selectIndex.current, dx, dy)
     }
-    //let dx = Math.abs(e.offsetX - lastPressPos.current.x)
-    //let dy = Math.abs(e.offsetY - lastPressPos.current.y)
-    updateSources(selectIndex.current, e.offsetX, e.offsetY)
-    //const throttledFunc = throttle(updateSources, 200);
-    //throttledFunc(selectIndex.current, e.offsetX, e.offsetY)
-    //updateSources(selectIndex.current, dx, dy)
-
   }
 
   const handleMouseUp = (e) => {
-    console.log('----handleMouseUp e: ',e)
-    selectIndex.current = -1
+    if (selectIndex.current >= 0) {
+      console.log('----handleMouseUp e: ',e)
+      let dx = e.offsetX - lastPressPos.current.x
+      let dy = e.offsetY - lastPressPos.current.y
+      updateLocalConfig(selectIndex.current, dx, dy)
+      selectIndex.current = -1
+    }
   }
 
   const handleOnClick = (e) => {
@@ -243,11 +223,22 @@ const Combination: React.FC = () => {
   }
 
   const updateSources = (index: number, posX: number, posY: number) => {
-    let newSources = [...sources.current]
+    if (posX === 0 && posY === 0) {
+      console.log('------not move')
+      return
+    }
     if (index >= 0) {
-      console.log('updateSource index: ', index)
-      newSources[index].x = posX
-      newSources[index].y = posY
+      let selPosX = 0, selPosY = 0
+      let newSources = [...sources.current]
+      console.log('updateSource index: , dx: ,dy: ', index, posX, posY)
+      console.log('----before update: ',newSources)
+                
+      selPosX = newSources[index].x!
+      selPosY = newSources[index].y!
+      newSources[index].x = selPosX + posX
+      newSources[index].y = selPosY + posY
+      //newSources[index].x! = posX
+      //newSources[index].y! = posY
       newSources[index].zOrder = 2
       let config ={
         streamCount: newSources.length,
@@ -257,21 +248,53 @@ const Combination: React.FC = () => {
         },
       }
       console.log('updateSource config: ', config)
+      //sources.current = newSources
       engine.current.updateLocalTranscoderConfiguration(config)
       //setSources(newSources)
-      sources.current = newSources
+      //sources.current = newSources
     }
   }
 
   const getSelectNode = (posX, posY) => {
-    let index = sources.current.findIndex((item) => {
+    let selectIndex = -1, zOrder = 0
+    sources.current.forEach((item, index) => {
       let zoomX = Math.floor(item.x!*zoom.current)
       let zoomY = Math.floor(item.y!*zoom.current)
       let zoomW = Math.floor(item.width!*zoom.current)
       let zoomH = Math.floor(item.height!*zoom.current)
-      return (posX >= zoomX && posY >= zoomY && posX <= (zoomX + zoomW) && posY <= (zoomY + zoomH))
+      if (posX >= zoomX && posY >= zoomY && posX <= (zoomX + zoomW) && posY <= (zoomY + zoomH)) {
+        if (item.zOrder! > zOrder) {
+          selectIndex = index
+          zOrder = item.zOrder!
+        }
+      }
     })
-    return index
+    return selectIndex
+  }
+
+  const updateLocalConfig = (selectIndex: number, dx: number, dy: number) => {
+    if (selectIndex >= 0) {
+      console.log('----updateLocalConfig selectIndex,dx,dy',selectIndex,dx,dy)
+      let newSources = [...sources.current]
+      console.log('updateSource index: , dx: ,dy: ', selectIndex, dx, dy)
+      console.log('before updateConfig: ',newSources)
+      newSources[selectIndex].x! += dx
+      newSources[selectIndex].y! += dy
+      //newSources[selectIndex].zOrder = 1
+      console.log('-----newSourcesX: ',newSources[selectIndex].x)
+      console.log('-----newSourcesY: ',newSources[selectIndex].y)
+      let config ={
+        streamCount: newSources.length,
+        VideoInputStreams: newSources,
+        videoOutputConfiguration: {
+          dimensions: { width: max_width, height: max_height },
+        },
+      }
+      console.log('updateSource config: ', config)
+      engine.current.updateLocalTranscoderConfiguration(config)
+      sources.current = [...newSources]
+      console.log('---source is: ',sources.current)
+    }
   }
 
   const updateLocalTranscoderConfiguration = (source) => {
@@ -296,6 +319,12 @@ const Combination: React.FC = () => {
     return () => {
       console.log('unmonut component')
       isMounted.current = false
+      let canavsDom = video1Ref.current?.querySelector('canvas')
+      if (canavsDom) {
+        canavsDom.removeEventListener('mousedown', handleMouseDown)
+        canavsDom.removeEventListener('mousemove', handleMouseMove)
+        canavsDom.removeEventListener('mouseup', handleMouseUp)
+      }
       engine.current.release()
     }
   }, [])

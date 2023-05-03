@@ -28,9 +28,6 @@ const AppNew :React.FC = () => {
           <Item key="combination" icon={<SettingOutlined />}>
             <Link to="/combination">Composite Picture</Link>
           </Item>
-          <Item key="transcode" icon={<SettingOutlined />}>
-            <Link to="/transcode">TransCode</Link>
-          </Item>      
         </SubMenu>
       </Menu>
     )
