@@ -28,34 +28,15 @@ const test4Url = getResourcePath('test4.jpg')
 const max_width = 1280
 const max_height = 720
 
-function throttle<T extends any[]>(
-  func: (...args: T) => void,
-  delay: number
-): (...args: T) => void {
-  let timerId: ReturnType<typeof setTimeout> | null = null;
-
-  return function (...args: T) {
-    if (timerId === null) {
-      timerId = setTimeout(() => {
-        func.apply(this, args);
-        timerId = null;
-      }, delay);
-    }
-  };
-}
-
 const Combination: React.FC = () => {
   console.log('--------------------render()')
   const video1Ref = useRef<HTMLDivElement>(null)
   const video2Ref = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isOpen, setIsOpen] = useState(false)
-  //const [sources, setSources] = useState<TranscodingVideoStream[]>([])
-  //const [selectIndex, setSelectIndex] = useState(-1)
   const sources = useRef<TranscodingVideoStream[]>([])
   const engine = useRef(createAgoraRtcEngine());
   const isMounted = useRef(false);
-  const zoom = useRef(0)
+  const zoom = useRef(1)
   const selectIndex = useRef(-1)
   const lastPressPos = useRef({x:0,y:0})
   
@@ -85,8 +66,8 @@ const Combination: React.FC = () => {
   const getVideo1React = () => {
     let rect = video1Ref.current?.getBoundingClientRect()
     
-    let canavsDom = video1Ref.current?.querySelector('canvas')
-    zoom.current = canavsDom?.style.zoom
+    let canavsDom:any = video1Ref.current?.querySelector('canvas')
+    zoom.current = Number.parseFloat(canavsDom?.style.zoom || '1');
     console.log('------zoom: ',zoom)
     //let canavsDom = video1Ref.current
     console.log('----children: ', video1Ref.current?.children)
