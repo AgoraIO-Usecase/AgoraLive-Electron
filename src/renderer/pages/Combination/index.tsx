@@ -1,13 +1,9 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Config from '../../config/agora.config'
 import styles from './combination.scss'
 import {
   createAgoraRtcEngine,
-  IMediaPlayer,
-  IRtcEngineEx,
   RenderModeType,
-  RtcConnection,
-  VideoCanvas,
   VideoMirrorModeType,
   VideoSourceType,
   MediaSourceType,
@@ -28,7 +24,6 @@ const max_width = 1280
 const max_height = 720
 
 const Combination: React.FC = () => {
-  console.log('--------------------render()')
   const video1Ref = useRef<HTMLDivElement>(null)
   const video2Ref = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
@@ -67,11 +62,6 @@ const Combination: React.FC = () => {
     const canvas:any = video1Ref.current?.querySelector('canvas')
     zoom.current = Number.parseFloat(canvas?.style.zoom || '1');
     console.log('------zoom: ',zoom)
-    //let canavsDom = video1Ref.current
-    console.log('----children: ', video1Ref.current?.children)
-    console.log('----canvas: ',canvas?.style)
-    console.log('----canvas top: ',canvas?.offsetTop)
-    console.log('----canvas left: ',canvas?.offsetLeft)
 
     canvas?.addEventListener('mousedown', handleMouseDown)
     canvas?.addEventListener('mousemove', handleMouseMove)
