@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import Config from '../../config/agora.config'
 import styles from './combination.scss'
-import { List } from 'antd'
 import {
   createAgoraRtcEngine,
   IMediaPlayer,
@@ -63,22 +62,20 @@ const Combination: React.FC = () => {
     });
   }
 
-  const getVideo1React = () => {
-    let rect = video1Ref.current?.getBoundingClientRect()
+  const updateCanvasConfig = () => {
     
-    let canavsDom:any = video1Ref.current?.querySelector('canvas')
-    zoom.current = Number.parseFloat(canavsDom?.style.zoom || '1');
+    const canvas:any = video1Ref.current?.querySelector('canvas')
+    zoom.current = Number.parseFloat(canvas?.style.zoom || '1');
     console.log('------zoom: ',zoom)
     //let canavsDom = video1Ref.current
     console.log('----children: ', video1Ref.current?.children)
-    console.log('----canvas: ',canavsDom?.style)
-    console.log('----canvas top: ',canavsDom?.offsetTop)
-    console.log('----canvas left: ',canavsDom?.offsetLeft)
+    console.log('----canvas: ',canvas?.style)
+    console.log('----canvas top: ',canvas?.offsetTop)
+    console.log('----canvas left: ',canvas?.offsetLeft)
 
-    canavsDom?.addEventListener('mousedown', handleMouseDown)
-    canavsDom?.addEventListener('mousemove', handleMouseMove)
-    canavsDom?.addEventListener('mouseup', handleMouseUp)
-    console.log('-----rect: ',rect)
+    canvas?.addEventListener('mousedown', handleMouseDown)
+    canvas?.addEventListener('mousemove', handleMouseMove)
+    canvas?.addEventListener('mouseup', handleMouseUp)
   }
 
   const updateDisplayRender = () => {
@@ -107,9 +104,8 @@ const Combination: React.FC = () => {
   }
 
   const getLocalTransConfig = ()=> {
-    console.log('-----1111111111111')
     const  width = 300,
-           height = 300;
+           height = 300
     const streams: TranscodingVideoStream[] = []
     streams.push({
       sourceType: MediaSourceType.PrimaryCameraSource
@@ -117,36 +113,33 @@ const Combination: React.FC = () => {
     streams.push({
       sourceType: MediaSourceType.RtcImageJpegSource,
       imageUrl: test1Url,
-    });
+    })
     streams.push({
       sourceType: MediaSourceType.RtcImageJpegSource,
       imageUrl: test2Url,
-    });
+    })
     streams.push({
       sourceType: MediaSourceType.RtcImageJpegSource,
       imageUrl: test3Url,
-    });
+    })
     streams.push({
       sourceType: MediaSourceType.RtcImageJpegSource,
       imageUrl: test4Url,
-    });
+    })
 
     streams.map((value, index) => {
-      const maxNumPerRow = Math.floor(max_width / width);
-      const numOfRow = Math.floor(index / maxNumPerRow);
-      const numOfColumn = Math.floor(index % maxNumPerRow);
-      value.x = numOfColumn * width;
-      value.y = numOfRow * height;
-      //value.x = 0;
-      //value.y = 0;
-      value.width = width;
-      value.height = height;
-      value.zOrder = index+1;
-      value.alpha = 1;
-      value.mirror = true;
-    });
+      const maxNumPerRow = Math.floor(max_width / width)
+      const numOfRow = Math.floor(index / maxNumPerRow)
+      const numOfColumn = Math.floor(index % maxNumPerRow)
+      value.x = numOfColumn * width
+      value.y = numOfRow * height
+      value.width = width
+      value.height = height
+      value.zOrder = index+1
+      value.alpha = 1
+      value.mirror = true
+    })
 
-    //setSources(streams)
     sources.current = [...streams]
     console.log('-----getLocalTransConfig sources: ', sources.current)
 
@@ -179,9 +172,7 @@ const Combination: React.FC = () => {
       console.log('----mouse move lastPressPos: ',lastPressPos.current)
       let dx = e.offsetX - lastPressPos.current.x
       let dy = e.offsetY - lastPressPos.current.y
-      //updateSources(selectIndex.current, dx, dy)
-      //const throttledFunc = throttle(updateSources, 300);
-      //throttledFunc(selectIndex.current, dx, dy)
+      updateSources(selectIndex.current, dx, dy)
     }
   }
 
@@ -190,37 +181,31 @@ const Combination: React.FC = () => {
       console.log('----handleMouseUp e: ',e)
       let dx = e.offsetX - lastPressPos.current.x
       let dy = e.offsetY - lastPressPos.current.y
-      updateLocalConfig(selectIndex.current, dx, dy)
+      let lastSources = getNewSources(selectIndex.current, dx, dy)
+      let config = {
+        streamCount: lastSources.length,
+        VideoInputStreams: lastSources,
+        videoOutputConfiguration: {
+          dimensions: { width: max_width, height: max_height },
+        },
+      }
+      engine.current.updateLocalTranscoderConfiguration(config)
+      console.log('------mouseup event lastSources: ', lastSources)
+      sources.current = lastSources
       selectIndex.current = -1
     }
   }
 
   const handleOnClick = (e) => {
-    console.log('eeeeee')
     let config = getLocalTransConfig()
     console.log('----config: ',config)
     engine.current.startLocalVideoTranscoder(config)
     setIsOpen(!isOpen)
   }
 
-  const updateSources = (index: number, posX: number, posY: number) => {
-    if (posX === 0 && posY === 0) {
-      console.log('------not move')
-      return
-    }
+  const updateSources = (index: number, dx: number, dy: number) => {
     if (index >= 0) {
-      let selPosX = 0, selPosY = 0
-      let newSources = [...sources.current]
-      console.log('updateSource index: , dx: ,dy: ', index, posX, posY)
-      console.log('----before update: ',newSources)
-                
-      selPosX = newSources[index].x!
-      selPosY = newSources[index].y!
-      newSources[index].x = selPosX + posX
-      newSources[index].y = selPosY + posY
-      //newSources[index].x! = posX
-      //newSources[index].y! = posY
-      newSources[index].zOrder = 2
+      let newSources = getNewSources(index,dx,dy)
       let config ={
         streamCount: newSources.length,
         VideoInputStreams: newSources,
@@ -228,12 +213,23 @@ const Combination: React.FC = () => {
           dimensions: { width: max_width, height: max_height },
         },
       }
-      console.log('updateSource config: ', config)
-      //sources.current = newSources
+      console.log('updateSource sources: ', newSources)
       engine.current.updateLocalTranscoderConfiguration(config)
-      //setSources(newSources)
-      //sources.current = newSources
     }
+  }
+
+  const getNewSources = (selectIndex: number, dx: number, dy: number):TranscodingVideoStream[] => {
+    let newSources = sources.current.map((item, index) => {
+      if (index === selectIndex) {
+        return {
+          ...item,
+          x: item.x! + dx,
+          y: item.y! + dy
+        }
+      }
+      return item
+    })
+    return newSources
   }
 
   const getSelectNode = (posX, posY) => {
@@ -253,44 +249,14 @@ const Combination: React.FC = () => {
     return selectIndex
   }
 
-  const updateLocalConfig = (selectIndex: number, dx: number, dy: number) => {
-    if (selectIndex >= 0) {
-      console.log('----updateLocalConfig selectIndex,dx,dy',selectIndex,dx,dy)
-      let newSources = [...sources.current]
-      console.log('updateSource index: , dx: ,dy: ', selectIndex, dx, dy)
-      console.log('before updateConfig: ',newSources)
-      newSources[selectIndex].x! += dx
-      newSources[selectIndex].y! += dy
-      //newSources[selectIndex].zOrder = 1
-      console.log('-----newSourcesX: ',newSources[selectIndex].x)
-      console.log('-----newSourcesY: ',newSources[selectIndex].y)
-      let config ={
-        streamCount: newSources.length,
-        VideoInputStreams: newSources,
-        videoOutputConfiguration: {
-          dimensions: { width: max_width, height: max_height },
-        },
-      }
-      console.log('updateSource config: ', config)
-      engine.current.updateLocalTranscoderConfiguration(config)
-      sources.current = [...newSources]
-      console.log('---source is: ',sources.current)
-    }
-  }
-
-  const updateLocalTranscoderConfiguration = (source) => {
-
-  }
-
   useEffect(() => {
     console.log('-----isOpen: ',isOpen)
     console.log('--isMount: ',isMounted.current)
     if (isMounted.current) {
       updateDisplayRender()
       setTimeout(() => {
-        getVideo1React()
+        updateCanvasConfig()
       },500)
-      //getVideo1React()
     }
   },[isOpen])
 
@@ -300,11 +266,11 @@ const Combination: React.FC = () => {
     return () => {
       console.log('unmonut component')
       isMounted.current = false
-      let canavsDom = video1Ref.current?.querySelector('canvas')
-      if (canavsDom) {
-        canavsDom.removeEventListener('mousedown', handleMouseDown)
-        canavsDom.removeEventListener('mousemove', handleMouseMove)
-        canavsDom.removeEventListener('mouseup', handleMouseUp)
+      const canvas = video1Ref.current?.querySelector('canvas')
+      if (canvas) {
+        canvas.removeEventListener('mousedown', handleMouseDown)
+        canvas.removeEventListener('mousemove', handleMouseMove)
+        canvas.removeEventListener('mouseup', handleMouseUp)
       }
       engine.current.release()
     }
