@@ -29,7 +29,6 @@ const Combination: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
   const sources = useRef<TranscodingVideoStream[]>([])
   const engine = useRef(createAgoraRtcEngine());
-  const isMounted = useRef(false);
   const zoom = useRef(1)
   const selectIndex = useRef(-1)
   const lastPressPos = useRef({x:0,y:0})
@@ -43,18 +42,6 @@ const Combination: React.FC = () => {
     });
     engine.current.enableVideo();
     engine.current.startPreview();
-    engine.current.setupLocalVideo({
-      sourceType: VideoSourceType.VideoSourceCameraPrimary,
-      view: video1Ref.current,
-      mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
-      renderMode: RenderModeType.RenderModeFit,
-    });
-    engine.current.setupLocalVideo({
-      sourceType: VideoSourceType.VideoSourceCameraPrimary,
-      view: video2Ref.current,
-      mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
-      renderMode: RenderModeType.RenderModeFit,
-    });
   }
 
   const updateCanvasConfig = () => {
@@ -66,31 +53,6 @@ const Combination: React.FC = () => {
     canvas?.addEventListener('mousedown', handleMouseDown)
     canvas?.addEventListener('mousemove', handleMouseMove)
     canvas?.addEventListener('mouseup', handleMouseUp)
-  }
-
-  const updateDisplayRender = () => {
-    console.log('---updateDisplayRender: ', isOpen)
-    try {
-      engine.current.destroyRendererByView(video1Ref.current);
-    } catch (e) {
-      console.error(e);
-    }
-
-    if (isOpen) {
-      engine.current.setupLocalVideo({
-        sourceType: VideoSourceType.VideoSourceTranscoded,
-        view: video1Ref.current,
-        mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
-        renderMode: RenderModeType.RenderModeFit,
-      });
-    } else {
-      engine.current.setupLocalVideo({
-        sourceType: VideoSourceType.VideoSourceCameraPrimary,
-        view: video1Ref.current,
-        mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
-        renderMode: RenderModeType.RenderModeFit,
-      });
-    }
   }
 
   const getLocalTransConfig = ()=> {
@@ -187,9 +149,6 @@ const Combination: React.FC = () => {
   }
 
   const handleOnClick = (e) => {
-    let config = getLocalTransConfig()
-    console.log('----config: ',config)
-    engine.current.startLocalVideoTranscoder(config)
     setIsOpen(!isOpen)
   }
 
@@ -240,27 +199,56 @@ const Combination: React.FC = () => {
   }
 
   useEffect(() => {
-    console.log('-----isOpen: ',isOpen)
-    console.log('--isMount: ',isMounted.current)
-    if (isMounted.current) {
-      updateDisplayRender()
-      setTimeout(() => {
-        updateCanvasConfig()
-      },500)
+    const updateDisplayRender = () => {
+      console.log('---updateDisplayRender: ', isOpen)
+      try {
+        engine.current.destroyRendererByView(video1Ref.current);
+      } catch (e) {
+        console.error(e);
+      }
+      if (isOpen) {
+        let config = getLocalTransConfig()
+        engine.current.startLocalVideoTranscoder(config)
+        console.log('----config: ',config)
+        engine.current.setupLocalVideo({
+          sourceType: VideoSourceType.VideoSourceTranscoded,
+          view: video1Ref.current,
+          mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
+          renderMode: RenderModeType.RenderModeFit,
+        });
+      } else {
+        engine.current.setupLocalVideo({
+          sourceType: VideoSourceType.VideoSourceCameraPrimary,
+          view: video1Ref.current,
+          mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
+          renderMode: RenderModeType.RenderModeFit,
+        });
+      }
+      engine.current.setupLocalVideo({
+        sourceType: VideoSourceType.VideoSourceCameraPrimary,
+        view: video2Ref.current,
+        mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
+        renderMode: RenderModeType.RenderModeFit,
+      });
     }
+    console.log('-----isOpen: ',isOpen)
+    updateDisplayRender()
+    setTimeout(() => {
+      updateCanvasConfig()
+    },500)
   },[isOpen])
 
   useEffect(() => {
-    isMounted.current = true
     initEngine()
     return () => {
       console.log('unmonut component')
-      isMounted.current = false
+      setIsOpen(false)
       const canvas = video1Ref.current?.querySelector('canvas')
       if (canvas) {
         canvas.removeEventListener('mousedown', handleMouseDown)
         canvas.removeEventListener('mousemove', handleMouseMove)
         canvas.removeEventListener('mouseup', handleMouseUp)
+
       }
       engine.current.release()
     }
