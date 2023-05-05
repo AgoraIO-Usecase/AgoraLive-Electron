@@ -11,6 +11,8 @@ import {
   TranscodingVideoStream
 } from 'agora-electron-sdk';
 import { getResourcePath } from '../../utils/index';
+import SelectBox from '../../components/SelectBox'
+
 import test1 from '../../assets/images/test1.jpg';
 import test2 from '../../assets/images/test2.jpg';
 import test3 from '../../assets/images/test3.jpg';
@@ -27,11 +29,19 @@ const Combination: React.FC = () => {
   const video1Ref = useRef<HTMLDivElement>(null)
   const video2Ref = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
+  const [checkIndex, setCheckIndex] = useState(-1)
   const sources = useRef<TranscodingVideoStream[]>([])
   const engine = useRef(createAgoraRtcEngine());
   const zoom = useRef(1)
   const selectIndex = useRef(-1)
   const lastPressPos = useRef({x:0,y:0})
+  const [boxRect, setBoxRect] = useState({
+    containerId: 'canvas-mask',
+    top: 0,
+    left: 0,
+    width: 150,
+    height: 150
+  })
   
 
   const initEngine = () => {
@@ -49,10 +59,43 @@ const Combination: React.FC = () => {
     const canvas:any = video1Ref.current?.querySelector('canvas')
     zoom.current = Number.parseFloat(canvas?.style.zoom || '1');
     console.log('------zoom: ',zoom)
-
+    const parentDom = video1Ref.current?.querySelector('div')
+    const width = Math.floor(max_width*zoom.current)
+    const height = Math.floor(max_height*zoom.current)
+    if (parentDom) {
+      createCanvasMask(parentDom, width, height)
+    }
     canvas?.addEventListener('mousedown', handleMouseDown)
     canvas?.addEventListener('mousemove', handleMouseMove)
     canvas?.addEventListener('mouseup', handleMouseUp)
+  }
+
+  const createCanvasMask = (parentDom: HTMLDivElement,width: number,height: number) => {
+    const mask = document.getElementById('canvas-mask')
+    if (mask) {
+      parentDom.removeChild(mask)
+    }
+    console.log('----createCanvasMask width, height, parent: ',width,height,parentDom)
+    const dom = document.createElement('div')
+    dom.id = 'canvas-mask'
+    dom.style.position = 'absolute'
+    dom.style.width = width.toString()+'px'
+    dom.style.height = height.toString() + 'px'
+    dom.style.pointerEvents = 'none'
+    parentDom.insertBefore(dom, parentDom.firstChild)
+    console.log('mask rect: ',dom.getBoundingClientRect())
+  }
+
+  const updateSelectBoxRect = (selectIndex) => {
+    if (selectIndex >= 0) {
+      setBoxRect({
+        containerId: 'canvas-mask',
+        left:  Math.floor(sources.current[selectIndex].x! * zoom.current),
+        top: Math.floor(sources.current[selectIndex].y! * zoom.current),
+        width: Math.floor(sources.current[selectIndex].width! * zoom.current),
+        height: Math.floor(sources.current[selectIndex].height! * zoom.current)
+      })
+    }
   }
 
   const getLocalTransConfig = ()=> {
@@ -110,9 +153,10 @@ const Combination: React.FC = () => {
     lastPressPos.current.x = e.offsetX
     lastPressPos.current.y = e.offsetY
     let index = getSelectNode(e.offsetX, e.offsetY)
+    setCheckIndex(index)
+    updateSelectBoxRect(index)
     selectIndex.current = index
     console.log('----index: ',index)
-    console.log('----mouse down lastPressPos: ',lastPressPos.current)
     console.log(sources)
     //setSelectIndex(index)
 
@@ -233,9 +277,11 @@ const Combination: React.FC = () => {
     }
     console.log('-----isOpen: ',isOpen)
     updateDisplayRender()
-    setTimeout(() => {
-      updateCanvasConfig()
-    },500)
+    if (isOpen) {
+      setTimeout(() => {
+        updateCanvasConfig()
+      },500)
+    }
   },[isOpen])
 
   useEffect(() => {
@@ -259,6 +305,9 @@ const Combination: React.FC = () => {
       <h3 style={{textAlign:'center'}}>Function Show</h3>
       <div className={styles.display}>
         <div className='video1' ref={video1Ref} style={{height:'100%'}}></div>
+        {
+          (checkIndex>=0)&&<SelectBox {...boxRect}/>
+        }
       </div>
       <h3 style={{textAlign:'center'}}>Materal Show</h3>
       <div className={styles.material}>
