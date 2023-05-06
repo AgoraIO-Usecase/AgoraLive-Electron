@@ -86,12 +86,14 @@ const Combination: React.FC = () => {
     console.log('mask rect: ',dom.getBoundingClientRect())
   }
 
-  const updateSelectBoxRect = (selectIndex) => {
+  const updateSelectBoxRect = (selectIndex, dx=0, dy=0) => {
     if (selectIndex >= 0) {
+      console.log('updateSelectBoxRect dx: ',Math.floor(sources.current[selectIndex].x! * zoom.current)+dx)
+      console.log('updateSelectBoxRect dy: ',Math.floor(sources.current[selectIndex].y! * zoom.current)+dy)
       setBoxRect({
         containerId: 'canvas-mask',
-        left:  Math.floor(sources.current[selectIndex].x! * zoom.current),
-        top: Math.floor(sources.current[selectIndex].y! * zoom.current),
+        left:  Math.floor((sources.current[selectIndex].x! + dx) * zoom.current),
+        top: Math.floor((sources.current[selectIndex].y!+dy) * zoom.current),
         width: Math.floor(sources.current[selectIndex].width! * zoom.current),
         height: Math.floor(sources.current[selectIndex].height! * zoom.current)
       })
@@ -154,7 +156,7 @@ const Combination: React.FC = () => {
     lastPressPos.current.y = e.offsetY
     let index = getSelectNode(e.offsetX, e.offsetY)
     setCheckIndex(index)
-    updateSelectBoxRect(index)
+    updateSelectBoxRect(index,0,0)
     selectIndex.current = index
     console.log('----index: ',index)
     console.log(sources)
@@ -168,6 +170,7 @@ const Combination: React.FC = () => {
       console.log('----mouse move lastPressPos: ',lastPressPos.current)
       let dx = e.offsetX - lastPressPos.current.x
       let dy = e.offsetY - lastPressPos.current.y
+      updateSelectBoxRect(selectIndex.current, dx, dy)
       updateSources(selectIndex.current, dx, dy)
     }
   }
@@ -186,6 +189,7 @@ const Combination: React.FC = () => {
         },
       }
       engine.current.updateLocalTranscoderConfiguration(config)
+      updateSelectBoxRect(selectIndex.current, dx, dy)
       console.log('------mouseup event lastSources: ', lastSources)
       sources.current = lastSources
       selectIndex.current = -1
@@ -199,6 +203,7 @@ const Combination: React.FC = () => {
   const updateSources = (index: number, dx: number, dy: number) => {
     if (index >= 0) {
       let newSources = getNewSources(index,dx,dy)
+      console.log('----updateSources newSources: ',  newSources)
       let config ={
         streamCount: newSources.length,
         VideoInputStreams: newSources,
