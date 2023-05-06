@@ -42,6 +42,7 @@ const Combination: React.FC = () => {
     width: 150,
     height: 150
   })
+  let startX,startY
   
 
   const initEngine = () => {
@@ -55,7 +56,6 @@ const Combination: React.FC = () => {
   }
 
   const updateCanvasConfig = () => {
-    
     const canvas:any = video1Ref.current?.querySelector('canvas')
     zoom.current = Number.parseFloat(canvas?.style.zoom || '1');
     console.log('------zoom: ',zoom)
@@ -86,7 +86,7 @@ const Combination: React.FC = () => {
     console.log('mask rect: ',dom.getBoundingClientRect())
   }
 
-  const updateSelectBoxRect = (selectIndex, dx=0, dy=0) => {
+  const updateSelectBoxRect = (selectIndex, dx=0, dy=0,dw=0,dh=0) => {
     if (selectIndex >= 0) {
       console.log('updateSelectBoxRect dx: ',Math.floor(sources.current[selectIndex].x! * zoom.current)+dx)
       console.log('updateSelectBoxRect dy: ',Math.floor(sources.current[selectIndex].y! * zoom.current)+dy)
@@ -94,8 +94,8 @@ const Combination: React.FC = () => {
         containerId: 'canvas-mask',
         left:  Math.floor((sources.current[selectIndex].x! + dx) * zoom.current),
         top: Math.floor((sources.current[selectIndex].y!+dy) * zoom.current),
-        width: Math.floor(sources.current[selectIndex].width! * zoom.current),
-        height: Math.floor(sources.current[selectIndex].height! * zoom.current)
+        width: Math.floor((sources.current[selectIndex].width!) * zoom.current+dw),
+        height: Math.floor((sources.current[selectIndex].height!) * zoom.current+dh)
       })
     }
   }
@@ -149,6 +149,32 @@ const Combination: React.FC = () => {
     }
   }
 
+  const mouseDownCallback = (e) => {
+    console.log('---mouseDownCallback e: ',e)
+    startX = e.clientX
+    startY = e.clientY
+  }
+
+  const mouseMoveCallback = (e) => {
+    console.log('-----selectIndex: ', selectIndex.current)
+    if (checkIndex >= 0) {
+      console.log('---mouseMoveCallback e: ',e)
+      let dw = e.clientX - startX
+      let dh = e.clientY - startY
+      console.log('startX, startY: ',startX, startY)
+      console.log('dw, dh: ',dw, dh)
+    }
+  }
+
+  const mouseUpCallback = (e) => {
+    console.log('---mouseUpCallback e: ',e)
+  }
+
+  const updateResize = (dw, dh) => {
+    console.log('----updateResize dw, dh: ',dw,dh)
+    updateSelectBoxRect(checkIndex,0,0,dw,dh)
+  }
+
   const handleMouseDown = (e) => {
     console.log('----handleMouseDown e: ',e)
     selectIndex.current = -1
@@ -156,7 +182,7 @@ const Combination: React.FC = () => {
     lastPressPos.current.y = e.offsetY
     let index = getSelectNode(e.offsetX, e.offsetY)
     setCheckIndex(index)
-    updateSelectBoxRect(index,0,0)
+    updateSelectBoxRect(index,0,0,0,0)
     selectIndex.current = index
     console.log('----index: ',index)
     console.log(sources)
@@ -170,7 +196,7 @@ const Combination: React.FC = () => {
       console.log('----mouse move lastPressPos: ',lastPressPos.current)
       let dx = e.offsetX - lastPressPos.current.x
       let dy = e.offsetY - lastPressPos.current.y
-      updateSelectBoxRect(selectIndex.current, dx, dy)
+      updateSelectBoxRect(selectIndex.current, dx, dy,0,0)
       updateSources(selectIndex.current, dx, dy)
     }
   }
@@ -197,7 +223,55 @@ const Combination: React.FC = () => {
   }
 
   const handleOnClick = (e) => {
+    if(isOpen) {
+      setCheckIndex(-1)
+    }
     setIsOpen(!isOpen)
+  }
+
+  const setOnTop = () => {
+    if (checkIndex >= 0) {
+      sources.current[checkIndex].zOrder = 99
+      let config ={
+        streamCount: sources.current.length,
+        VideoInputStreams: sources.current,
+        videoOutputConfiguration: {
+          dimensions: { width: max_width, height: max_height },
+        },
+      }
+      console.log('setOnTop sources: ', sources.current)
+      engine.current.updateLocalTranscoderConfiguration(config)
+    }
+  }
+
+  const setOnBottom = () => {
+    if (checkIndex >= 0) {
+      sources.current[checkIndex].zOrder = 0
+      let config ={
+        streamCount: sources.current.length,
+        VideoInputStreams: sources.current,
+        videoOutputConfiguration: {
+          dimensions: { width: max_width, height: max_height },
+        },
+      }
+      console.log('setOnBottom sources: ', sources.current)
+      engine.current.updateLocalTranscoderConfiguration(config)
+    }
+  }
+
+  const onReset = () => {
+    if (checkIndex >= 0) {
+      sources.current[checkIndex].zOrder = checkIndex+1
+      let config ={
+        streamCount: sources.current.length,
+        VideoInputStreams: sources.current,
+        videoOutputConfiguration: {
+          dimensions: { width: max_width, height: max_height },
+        },
+      }
+      console.log('onReset sources: ', sources.current)
+      engine.current.updateLocalTranscoderConfiguration(config)
+    }
   }
 
   const updateSources = (index: number, dx: number, dy: number) => {
@@ -222,7 +296,7 @@ const Combination: React.FC = () => {
         return {
           ...item,
           x: item.x! + dx,
-          y: item.y! + dy
+          y: item.y! + dy,
         }
       }
       return item
@@ -238,7 +312,7 @@ const Combination: React.FC = () => {
       let zoomW = Math.floor(item.width!*zoom.current)
       let zoomH = Math.floor(item.height!*zoom.current)
       if (posX >= zoomX && posY >= zoomY && posX <= (zoomX + zoomW) && posY <= (zoomY + zoomH)) {
-        if (item.zOrder! > zOrder) {
+        if (item.zOrder! >= zOrder) {
           selectIndex = index
           zOrder = item.zOrder!
         }
@@ -311,7 +385,7 @@ const Combination: React.FC = () => {
       <div className={styles.display}>
         <div className='video1' ref={video1Ref} style={{height:'100%'}}></div>
         {
-          (checkIndex>=0)&&<SelectBox {...boxRect}/>
+          (checkIndex>=0)&&<SelectBox {...boxRect} mouseDownCallback = {mouseDownCallback} mouseMoveCallback={mouseMoveCallback} mouseUpCallback={mouseUpCallback} resizingCallBack={updateResize}/>
         }
       </div>
       <h3 style={{textAlign:'center'}}>Materal Show</h3>
@@ -324,6 +398,13 @@ const Combination: React.FC = () => {
       </div>
       <div style={{ marginTop:'10px', display:'flex', justifyContent:'center' }}>
         <button onClick={handleOnClick}>{isOpen ? 'Stop Composite Picture': 'Start Composite Picture'}</button>
+        {(checkIndex>=0)&&(
+          <>
+            <button onClick={setOnTop}>Set Top</button>
+            <button onClick={setOnBottom}>Set Bottom</button>
+            <button onClick={onReset}>Reset</button>
+          </>
+        )}
       </div>
     </div>
   )

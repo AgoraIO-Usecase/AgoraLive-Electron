@@ -5,8 +5,8 @@
 
 .resizer {
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   background-color: #fff;
   border: 1px solid #000;
   border-radius: 50%;
@@ -14,25 +14,25 @@
 }
 
 .top-left {
-  top: -4px;
-  left: -4px;
+  top: -6px;
+  left: -6px;
   cursor: nwse-resize;
 }
 
 .top-right {
-  top: -4px;
-  right: -4px;
+  top: -6px;
+  right: -6px;
   cursor: nesw-resize;
 }
 
 .bottom-left {
-  bottom: -4px;
-  left: -4px;
+  bottom: -6px;
+  left: -6px;
   cursor: nesw-resize;
 }
 
 .bottom-right {
-  bottom: -4px;
-  right: -4px;
+  bottom: -6px;
+  right: -6px;
   cursor: nwse-resize;
 }
