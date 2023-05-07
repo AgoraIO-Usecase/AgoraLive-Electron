@@ -9,17 +9,13 @@ interface ConfigProps {
   top: number,
   width: number,
   height: number,
-  mouseDownCallback? : (event: React.MouseEvent<HTMLDivElement>) => void,
-  mouseMoveCallback? : (event: React.MouseEvent<HTMLDivElement>) => void,
-  mouseUpCallback? : (event: React.MouseEvent<HTMLDivElement>) => void,
-  resizingCallBack? : (dw: number, dh: number) => void
+  resizingCallBack? : (dw: number, dh: number, isResizing: boolean) => void
 }
 const SelectBox = (props : ConfigProps) => {
   const [mounted, setMounted] = useState(false);
   const parentDom = useRef<any>(null);
   const [isResizing, setIsResizing] = useState(false)
   const [position, setPosition] = useState({startX:0, startY: 0})
-  let startX, startY
 
   const handleMouseDown = (e) => {
     setIsResizing(true)
@@ -35,11 +31,14 @@ const SelectBox = (props : ConfigProps) => {
       let dh = e.clientY - position.startY 
       console.log('---handleMosueMove e.clientX, e.clientY: ',e.clientX,e.clientY)
       console.log('---handleMosueMove startX, startY: ',position.startX,position.startY)
-      props.resizingCallBack!(dw,dh)
+      props.resizingCallBack!(dw,dh,true)
     }
   }
 
   const handleMoveUp = (e) => {
+    let dw = e.clientX - position.startX
+    let dh = e.clientY - position.startY 
+    props.resizingCallBack!(dw,dh,false)
     setIsResizing(false)
   }
 

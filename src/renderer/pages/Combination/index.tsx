@@ -94,8 +94,8 @@ const Combination: React.FC = () => {
         containerId: 'canvas-mask',
         left:  Math.floor((sources.current[selectIndex].x! + dx) * zoom.current),
         top: Math.floor((sources.current[selectIndex].y!+dy) * zoom.current),
-        width: Math.floor((sources.current[selectIndex].width!) * zoom.current+dw),
-        height: Math.floor((sources.current[selectIndex].height!) * zoom.current+dh)
+        width: Math.floor((sources.current[selectIndex].width!) * zoom.current + dw),
+        height: Math.floor((sources.current[selectIndex].height!) * zoom.current + dh)
       })
     }
   }
@@ -149,30 +149,26 @@ const Combination: React.FC = () => {
     }
   }
 
-  const mouseDownCallback = (e) => {
-    console.log('---mouseDownCallback e: ',e)
-    startX = e.clientX
-    startY = e.clientY
-  }
-
-  const mouseMoveCallback = (e) => {
-    console.log('-----selectIndex: ', selectIndex.current)
-    if (checkIndex >= 0) {
-      console.log('---mouseMoveCallback e: ',e)
-      let dw = e.clientX - startX
-      let dh = e.clientY - startY
-      console.log('startX, startY: ',startX, startY)
-      console.log('dw, dh: ',dw, dh)
+  const updateResize = (dw, dh, isResizing) => {
+    console.log('----updateResize dw, dh, isResizing: ',dw,dh,isResizing)
+    if (isResizing) {
+      updateSelectBoxRect(checkIndex,0,0,dw,dh)
+      updateSources(checkIndex,0,0,dw,dh)
+    } else {
+      let lastSources = getNewSources(checkIndex, 0, 0, dw,dh)
+      let config = {
+        streamCount: lastSources.length,
+        VideoInputStreams: lastSources,
+        videoOutputConfiguration: {
+          dimensions: { width: max_width, height: max_height },
+        },
+      }
+      engine.current.updateLocalTranscoderConfiguration(config)
+      updateSelectBoxRect(selectIndex.current, 0, 0,dw,dh)
+      console.log('------updateResize lastSources: ', lastSources)
+      sources.current = lastSources
     }
-  }
-
-  const mouseUpCallback = (e) => {
-    console.log('---mouseUpCallback e: ',e)
-  }
-
-  const updateResize = (dw, dh) => {
-    console.log('----updateResize dw, dh: ',dw,dh)
-    updateSelectBoxRect(checkIndex,0,0,dw,dh)
+    
   }
 
   const handleMouseDown = (e) => {
@@ -197,7 +193,7 @@ const Combination: React.FC = () => {
       let dx = e.offsetX - lastPressPos.current.x
       let dy = e.offsetY - lastPressPos.current.y
       updateSelectBoxRect(selectIndex.current, dx, dy,0,0)
-      updateSources(selectIndex.current, dx, dy)
+      updateSources(selectIndex.current, dx, dy,0,0)
     }
   }
 
@@ -206,7 +202,7 @@ const Combination: React.FC = () => {
       console.log('----handleMouseUp e: ',e)
       let dx = e.offsetX - lastPressPos.current.x
       let dy = e.offsetY - lastPressPos.current.y
-      let lastSources = getNewSources(selectIndex.current, dx, dy)
+      let lastSources = getNewSources(selectIndex.current, dx, dy, 0,0)
       let config = {
         streamCount: lastSources.length,
         VideoInputStreams: lastSources,
@@ -215,7 +211,7 @@ const Combination: React.FC = () => {
         },
       }
       engine.current.updateLocalTranscoderConfiguration(config)
-      updateSelectBoxRect(selectIndex.current, dx, dy)
+      updateSelectBoxRect(selectIndex.current, dx, dy,0,0)
       console.log('------mouseup event lastSources: ', lastSources)
       sources.current = lastSources
       selectIndex.current = -1
@@ -274,9 +270,9 @@ const Combination: React.FC = () => {
     }
   }
 
-  const updateSources = (index: number, dx: number, dy: number) => {
+  const updateSources = (index: number, dx: number, dy: number,dw: number,dh: number) => {
     if (index >= 0) {
-      let newSources = getNewSources(index,dx,dy)
+      let newSources = getNewSources(index,dx,dy,dw,dh)
       console.log('----updateSources newSources: ',  newSources)
       let config ={
         streamCount: newSources.length,
@@ -290,13 +286,15 @@ const Combination: React.FC = () => {
     }
   }
 
-  const getNewSources = (selectIndex: number, dx: number, dy: number):TranscodingVideoStream[] => {
+  const getNewSources = (selectIndex: number, dx: number, dy: number, dw: number, dh:number):TranscodingVideoStream[] => {
     let newSources = sources.current.map((item, index) => {
       if (index === selectIndex) {
         return {
           ...item,
           x: item.x! + dx,
           y: item.y! + dy,
+          width: item.width! + Math.floor(dw/zoom.current),
+          height: item.height! + Math.floor(dh/zoom.current)
         }
       }
       return item
@@ -385,7 +383,7 @@ const Combination: React.FC = () => {
       <div className={styles.display}>
         <div className='video1' ref={video1Ref} style={{height:'100%'}}></div>
         {
-          (checkIndex>=0)&&<SelectBox {...boxRect} mouseDownCallback = {mouseDownCallback} mouseMoveCallback={mouseMoveCallback} mouseUpCallback={mouseUpCallback} resizingCallBack={updateResize}/>
+          (checkIndex>=0)&&<SelectBox {...boxRect} resizingCallBack={updateResize}/>
         }
       </div>
       <h3 style={{textAlign:'center'}}>Materal Show</h3>
