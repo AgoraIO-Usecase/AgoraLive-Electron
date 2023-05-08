@@ -90,6 +90,7 @@ const Combination: React.FC = () => {
     if (selectIndex >= 0) {
       console.log('updateSelectBoxRect dx: ',Math.floor(sources.current[selectIndex].x! * zoom.current)+dx)
       console.log('updateSelectBoxRect dy: ',Math.floor(sources.current[selectIndex].y! * zoom.current)+dy)
+      console.log('updateSelectBoxRect dw, dh: ',dw,dh)
       setBoxRect({
         containerId: 'canvas-mask',
         left:  Math.floor((sources.current[selectIndex].x! + dx) * zoom.current),
@@ -151,6 +152,14 @@ const Combination: React.FC = () => {
 
   const updateResize = (dw, dh, isResizing) => {
     console.log('----updateResize dw, dh, isResizing: ',dw,dh,isResizing)
+    /**
+     * 宽高相等缩放
+     */
+    if (Math.abs(dw) > Math.abs(dh)) {
+      dh = dw
+    } else {
+      dw = dh
+    }
     if (isResizing) {
       updateSelectBoxRect(checkIndex,0,0,dw,dh)
       updateSources(checkIndex,0,0,dw,dh)
