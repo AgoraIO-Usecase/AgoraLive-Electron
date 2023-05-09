@@ -76,6 +76,7 @@ const SelectBox = (props : ConfigProps) => {
   return ReactDOM.createPortal(
     <Rnd 
       style={{position: 'relative',border: '1px dotted #ccc'}}
+      bounds={parentDom.current}
       size = {size}
       position = {position}
       onDrag = {(e,d) => {
