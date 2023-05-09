@@ -3073,6 +3073,11 @@
     "process-nextick-args" "^2.0.0"
     "readable-stream" "^2.3.5"
 
+"clsx@^1.1.1":
+  "integrity" "sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg=="
+  "resolved" "https://registry.npmmirror.com/clsx/-/clsx-1.2.1.tgz"
+  "version" "1.2.1"
+
 "code-point-at@^1.0.0":
   "integrity" "sha512-RpAVKQA5T63xEj6/giIbUEtZwJ4UFIc3ZtvEkiaUERylqe8xb5IvqcgOurZLahv93CLKfxcw5YI+DZcUBRyLXA=="
   "resolved" "https://registry.npmmirror.com/code-point-at/-/code-point-at-1.1.0.tgz"
@@ -4709,6 +4714,11 @@
   "integrity" "sha512-Ia0sQNrMPXXkqVFt6w6M1n1oKo3NfKs+mvaV811Jwir7vAk9a6PVV9VPYf6X3BU97QiLEmuW3uXH9u87zDFfdw=="
   "resolved" "https://registry.npmmirror.com/fast-levenshtein/-/fast-levenshtein-1.1.4.tgz"
   "version" "1.1.4"
+
+"fast-memoize@^2.5.1":
+  "integrity" "sha512-Ue0LwpDYErFbmNnZSF0UH6eImUwDmogUO1jyE+JbN2gsQz/jICm1Ve7t9QT0rNSsfJt+Hs4/S3GnsDVjL4HVrw=="
+  "resolved" "https://registry.npmmirror.com/fast-memoize/-/fast-memoize-2.5.2.tgz"
+  "version" "2.5.2"
 
 "faye-websocket@^0.11.3", "faye-websocket@^0.11.4":
   "integrity" "sha512-CzbClwlXAuiRQAlUyfqPgvPoNKTckTPGfwZV4ZdAhVcP2lh9KUxJg2b5GkE7XbjKQ3YJnQ9z6D9ntLAlB+tP8g=="
@@ -8290,7 +8300,7 @@
     "err-code" "^2.0.2"
     "retry" "^0.12.0"
 
-"prop-types@^15.0.0", "prop-types@^15.5.10", "prop-types@^15.6.0", "prop-types@^15.6.2":
+"prop-types@^15.0.0", "prop-types@^15.5.10", "prop-types@^15.6.0", "prop-types@^15.6.2", "prop-types@^15.8.1":
   "integrity" "sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg=="
   "resolved" "https://registry.npmmirror.com/prop-types/-/prop-types-15.8.1.tgz"
   "version" "15.8.1"
@@ -8829,6 +8839,13 @@
     "minimist" "^1.2.0"
     "strip-json-comments" "~2.0.1"
 
+"re-resizable@6.9.6":
+  "integrity" "sha512-0xYKS5+Z0zk+vICQlcZW+g54CcJTTmHluA7JUUgvERDxnKAnytylcyPsA+BSFi759s5hPlHmBRegFrwXs2FuBQ=="
+  "resolved" "https://registry.npmmirror.com/re-resizable/-/re-resizable-6.9.6.tgz"
+  "version" "6.9.6"
+  dependencies:
+    "fast-memoize" "^2.5.1"
+
 "react-color@^2.19.3":
   "integrity" "sha512-LEeGE/ZzNLIsFWa1TMe8y5VYqr7bibneWmvJwm1pCn/eNmrabWDh659JSPn9BuaMpEfU83WTOJfnCcjDZwNQTA=="
   "resolved" "https://registry.npmmirror.com/react-color/-/react-color-2.19.3.tgz"
@@ -8842,13 +8859,21 @@
     "reactcss" "^1.2.0"
     "tinycolor2" "^1.4.1"
 
-"react-dom@*", "react-dom@^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0", "react-dom@^16.0.0 || ^17.0.0 || ^18.0.0", "react-dom@^18.1.0", "react-dom@>=15.0.0", "react-dom@>=16.0.0", "react-dom@>=16.11.0", "react-dom@>=16.9.0":
+"react-dom@*", "react-dom@^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0", "react-dom@^16.0.0 || ^17.0.0 || ^18.0.0", "react-dom@^16.13.1 || ^17.0.0 || ^18.0.0", "react-dom@^18.1.0", "react-dom@>= 16.3.0", "react-dom@>=15.0.0", "react-dom@>=16.0.0", "react-dom@>=16.11.0", "react-dom@>=16.3.0", "react-dom@>=16.9.0":
   "integrity" "sha512-6IMTriUmvsjHUjNtEDudZfuDQUoWXVxKHhlEGSk81n4YFS+r/Kl99wXiwlVXtPBtJenozv2P+hxDsw9eA7Xo6g=="
   "resolved" "https://registry.npmmirror.com/react-dom/-/react-dom-18.2.0.tgz"
   "version" "18.2.0"
   dependencies:
     "loose-envify" "^1.1.0"
     "scheduler" "^0.23.0"
+
+"react-draggable@4.4.5":
+  "integrity" "sha512-OMHzJdyJbYTZo4uQE393fHcqqPYsEtkjfMgvCHr6rejT+Ezn4OZbNyGH50vv+SunC1RMvwOTSWkEODQLzw1M9g=="
+  "resolved" "https://registry.npmmirror.com/react-draggable/-/react-draggable-4.4.5.tgz"
+  "version" "4.4.5"
+  dependencies:
+    "clsx" "^1.1.1"
+    "prop-types" "^15.8.1"
 
 "react-is@^16.10.2", "react-is@^16.12.0", "react-is@^16.13.1", "react-is@^16.6.0", "react-is@^16.7.0":
   "integrity" "sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ=="
@@ -8871,6 +8896,15 @@
   "version" "8.1.0"
   dependencies:
     "lodash" "^4.17.21"
+
+"react-rnd@^10.4.1":
+  "integrity" "sha512-0m887AjQZr6p2ADLNnipquqsDq4XJu/uqVqI3zuoGD19tRm6uB83HmZWydtkilNp5EWsOHbLGF4IjWMdd5du8Q=="
+  "resolved" "https://registry.npmmirror.com/react-rnd/-/react-rnd-10.4.1.tgz"
+  "version" "10.4.1"
+  dependencies:
+    "re-resizable" "6.9.6"
+    "react-draggable" "4.4.5"
+    "tslib" "2.3.1"
 
 "react-router-dom@^5.2.0":
   "integrity" "sha512-Ov0tGPMBgqmbu5CDmN++tv2HQ9HlWDuWIIqn4b88gjlAN5IHI+4ZUZRcpz9Hl0azFIwihbLDYw1OiHGRo7ZIng=="
@@ -8919,7 +8953,7 @@
     "prop-types" "^15.6.2"
     "react-lifecycles-compat" "^3.0.4"
 
-"react@*", "react@^0.14.0 || ^15.0.0 || ^16.0.0 || ^17.0.0", "react@^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0", "react@^16.0.0 || ^17.0.0 || ^18.0.0", "react@^18.1.0", "react@^18.2.0", "react@>=15", "react@>=15.0.0", "react@>=16.0.0", "react@>=16.11.0", "react@>=16.9.0":
+"react@*", "react@^0.14.0 || ^15.0.0 || ^16.0.0 || ^17.0.0", "react@^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0", "react@^16.0.0 || ^17.0.0 || ^18.0.0", "react@^16.13.1 || ^17.0.0 || ^18.0.0", "react@^18.1.0", "react@^18.2.0", "react@>= 16.3.0", "react@>=15", "react@>=15.0.0", "react@>=16.0.0", "react@>=16.11.0", "react@>=16.3.0", "react@>=16.9.0":
   "integrity" "sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ=="
   "resolved" "https://registry.npmmirror.com/react/-/react-18.2.0.tgz"
   "version" "18.2.0"
@@ -10570,6 +10604,11 @@
   "integrity" "sha512-d6xOpEDfsi2CZVlPQzGeux8XMwLT9hssAsaPYExaQMuYskwb+x1x7J371tWlbBdWHroy99KnVB6qIkUbs5X3UQ=="
   "resolved" "https://registry.npmmirror.com/tslib/-/tslib-2.4.0.tgz"
   "version" "2.4.0"
+
+"tslib@2.3.1":
+  "integrity" "sha512-77EbyPPpMz+FRFRuAFlWMtmgUWGe9UOG2Z25NqCwiIjRhOf5iKGuzSe5P2w1laq+FkRy4p+PCuVkJSGkzTEKVw=="
+  "resolved" "https://registry.npmmirror.com/tslib/-/tslib-2.3.1.tgz"
+  "version" "2.3.1"
 
 "tty-browserify@0.0.0":
   "integrity" "sha512-JVa5ijo+j/sOoHGjw0sxw734b1LhBkQ3bvUGNdxnVXDCX81Yx7TFgnZygxrIIWn23hbfTaMYLwRmAxFyDuFmIw=="

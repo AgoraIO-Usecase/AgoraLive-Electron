@@ -1,5 +1,7 @@
 import ReactDOM from 'react-dom';
 import { useEffect, useState, useRef } from 'react';
+import { Rnd } from 'react-rnd'
+
 
 import styles from './index.scss'
 
@@ -9,14 +11,16 @@ interface ConfigProps {
   top: number,
   width: number,
   height: number,
-  resizingCallBack? : (dw: number, dh: number, isResizing: boolean) => void
+  resizingCallBack? : (x: number, y: number, dw: number, dh: number,isResizing: boolean) => void
 }
 const SelectBox = (props : ConfigProps) => {
   const [mounted, setMounted] = useState(false);
   const parentDom = useRef<any>(null);
   const [isResizing, setIsResizing] = useState(false)
-  const [position, setPosition] = useState({startX:0, startY: 0})
+  const [position, setPosition] = useState({x: props.left, y: props.top})
+  const [size, setSize] = useState({width: props.width, height: props.height})
 
+  /*
   const handleMouseDown = (e) => {
     setIsResizing(true)
     setPosition({
@@ -41,15 +45,28 @@ const SelectBox = (props : ConfigProps) => {
     props.resizingCallBack!(dw,dh,false)
     setIsResizing(false)
   }
+  */
+
+  const handleOnResizeStop = (e, direction, ref, delta, position) => {
+    console.log('-----position ,ref: ', position, ref)
+  }
 
   useEffect(() => {
     setMounted(true);
+    setPosition({
+      x: props.left,
+      y: props.top
+    })
+    setSize({
+      width: props.width,
+      height: props.height
+    })
     parentDom.current = document.getElementById(props.containerId)
     console.log('------ selectbox parentDom: ',parentDom)
     return () => {
       setMounted(false);
     }
-  }, [props.containerId])
+  }, [props])
 
   
   if (!mounted || !parentDom.current) {
@@ -57,12 +74,53 @@ const SelectBox = (props : ConfigProps) => {
   }
 
   return ReactDOM.createPortal(
-    <div className={styles.box} style={{left:`${props.left}px`,top:`${props.top}px`, width:`${props.width}px`, height: `${props.height}px`}}>
-      <div className={[styles['resizer'], styles['top-left']].join(' ')} onMouseDown ={handleMouseDown} onMouseMove ={handleMosueMove} onMouseUp = {handleMoveUp}></div>
-      <div className={[styles['resizer'], styles['top-right']].join(' ')} onMouseDown ={handleMouseDown} onMouseMove ={handleMosueMove} onMouseUp = {handleMoveUp}></div>
-      <div className={[styles['resizer'], styles['bottom-left']].join(' ')} onMouseDown ={handleMouseDown} onMouseMove ={handleMosueMove} onMouseUp = {handleMoveUp}></div>
-      <div className={[styles['resizer'], styles['bottom-right']].join(' ')} onMouseDown ={handleMouseDown} onMouseMove ={handleMosueMove} onMouseUp = {handleMoveUp}></div>
-    </div>,
+    <Rnd 
+      style={{position: 'relative',border: '1px dotted #ccc'}}
+      size = {size}
+      position = {position}
+      onDrag = {(e,d) => {
+        console.log('----onDrag: ',d)
+        console.log('----onDrag x,y:',d.x, d.y)
+        setPosition({x: d.x, y:d.y})
+        props.resizingCallBack!(d.x, d.y, 0, 0, true)
+      }}
+      onDragStop={(e, d) => {
+        console.log('----onDragStop x,y:',d.x, d.y)
+        setPosition({x: d.x, y:d.y})
+        props.resizingCallBack!(d.x, d.y, 0, 0, false)
+      }}
+      onResize={(e, direction, ref, delta, position) => {
+        console.log('==------width, height: ',ref.offsetWidth,ref.offsetHeight)
+        console.log('----onResize position: ',position)
+        console.log('----onResize e: ',e)
+        console.log('----onResize delta: ',delta)
+
+        setPosition({
+          ...position
+        })
+        setSize({
+          width: ref.offsetWidth,
+          height: ref.offsetHeight
+        })
+        props.resizingCallBack!(position.x, position.y, delta.width, delta.height, true)
+      }}
+      onResizeStop={(e, direction, ref, delta, position) => {
+        console.log('onResizeStop: ',ref.offsetWidth,ref.offsetHeight)
+        setPosition({
+          ...position
+        })
+        setSize({
+          width: ref.offsetWidth,
+          height: ref.offsetHeight
+        })
+        props.resizingCallBack!(position.x, position.y, delta.width, delta.height, false)
+      }}
+    >
+      <div className={[styles['resizer'], styles['top-left']].join(' ')} ></div>
+      <div className={[styles['resizer'], styles['top-right']].join(' ')} ></div>
+      <div className={[styles['resizer'], styles['bottom-left']].join(' ')} ></div>
+      <div className={[styles['resizer'], styles['bottom-right']].join(' ')} ></div>
+    </Rnd>,
     parentDom.current
   )
 }

@@ -33,8 +33,6 @@ const Combination: React.FC = () => {
   const sources = useRef<TranscodingVideoStream[]>([])
   const engine = useRef(createAgoraRtcEngine());
   const zoom = useRef(1)
-  const selectIndex = useRef(-1)
-  const lastPressPos = useRef({x:0,y:0})
   const [boxRect, setBoxRect] = useState({
     containerId: 'canvas-mask',
     top: 0,
@@ -42,8 +40,6 @@ const Combination: React.FC = () => {
     width: 150,
     height: 150
   })
-  let startX,startY
-  
 
   const initEngine = () => {
     engine.current.initialize({
@@ -65,14 +61,12 @@ const Combination: React.FC = () => {
     if (parentDom) {
       createCanvasMask(parentDom, width, height)
     }
-    canvas?.addEventListener('mousedown', handleMouseDown)
-    canvas?.addEventListener('mousemove', handleMouseMove)
-    canvas?.addEventListener('mouseup', handleMouseUp)
   }
 
   const createCanvasMask = (parentDom: HTMLDivElement,width: number,height: number) => {
     const mask = document.getElementById('canvas-mask')
     if (mask) {
+      mask.removeEventListener('mousedown', handleMouseDown)
       parentDom.removeChild(mask)
     }
     console.log('----createCanvasMask width, height, parent: ',width,height,parentDom)
@@ -81,7 +75,10 @@ const Combination: React.FC = () => {
     dom.style.position = 'absolute'
     dom.style.width = width.toString()+'px'
     dom.style.height = height.toString() + 'px'
-    dom.style.pointerEvents = 'none'
+    //dom.style.pointerEvents = 'none'
+
+    //添加mousedown事件
+    dom.addEventListener('mousedown', handleMouseDown)
     parentDom.insertBefore(dom, parentDom.firstChild)
     console.log('mask rect: ',dom.getBoundingClientRect())
   }
@@ -92,7 +89,7 @@ const Combination: React.FC = () => {
       console.log('updateSelectBoxRect dy: ',Math.floor(sources.current[selectIndex].y! * zoom.current)+dy)
       console.log('updateSelectBoxRect dw, dh: ',dw,dh)
       setBoxRect({
-        containerId: 'canvas-mask',
+        ...boxRect,
         left:  Math.floor((sources.current[selectIndex].x! + dx) * zoom.current),
         top: Math.floor((sources.current[selectIndex].y!+dy) * zoom.current),
         width: Math.floor((sources.current[selectIndex].width!) * zoom.current + dw),
@@ -150,21 +147,13 @@ const Combination: React.FC = () => {
     }
   }
 
-  const updateResize = (dw, dh, isResizing) => {
-    console.log('----updateResize dw, dh, isResizing: ',dw,dh,isResizing)
-    /**
-     * 宽高相等缩放
-     */
-    if (Math.abs(dw) > Math.abs(dh)) {
-      dh = dw
-    } else {
-      dw = dh
-    }
+  const updateResize = (x, y, dw, dh, isResizing) => {
+    console.log('----updateResize x, y, dw, dh, isResizing: ',x, y, dw,dh,isResizing)
+    
     if (isResizing) {
-      updateSelectBoxRect(checkIndex,0,0,dw,dh)
-      updateSources(checkIndex,0,0,dw,dh)
+      updateSources(checkIndex,x,y,dw,dh)
     } else {
-      let lastSources = getNewSources(checkIndex, 0, 0, dw,dh)
+      let lastSources = getNewSources(checkIndex, x, y, dw,dh)
       let config = {
         streamCount: lastSources.length,
         VideoInputStreams: lastSources,
@@ -173,7 +162,6 @@ const Combination: React.FC = () => {
         },
       }
       engine.current.updateLocalTranscoderConfiguration(config)
-      updateSelectBoxRect(selectIndex.current, 0, 0,dw,dh)
       console.log('------updateResize lastSources: ', lastSources)
       sources.current = lastSources
     }
@@ -181,49 +169,13 @@ const Combination: React.FC = () => {
   }
 
   const handleMouseDown = (e) => {
-    console.log('----handleMouseDown e: ',e)
-    selectIndex.current = -1
-    lastPressPos.current.x = e.offsetX
-    lastPressPos.current.y = e.offsetY
-    let index = getSelectNode(e.offsetX, e.offsetY)
-    setCheckIndex(index)
-    updateSelectBoxRect(index,0,0,0,0)
-    selectIndex.current = index
-    console.log('----index: ',index)
-    console.log(sources)
-    //setSelectIndex(index)
-
-  }
-
-  const handleMouseMove = (e) => {
-    if (selectIndex.current >= 0) {
-      console.log('----handleMouseMove e: ',e.offsetX, e.offsetY)
-      console.log('----mouse move lastPressPos: ',lastPressPos.current)
-      let dx = e.offsetX - lastPressPos.current.x
-      let dy = e.offsetY - lastPressPos.current.y
-      updateSelectBoxRect(selectIndex.current, dx, dy,0,0)
-      updateSources(selectIndex.current, dx, dy,0,0)
-    }
-  }
-
-  const handleMouseUp = (e) => {
-    if (selectIndex.current >= 0) {
-      console.log('----handleMouseUp e: ',e)
-      let dx = e.offsetX - lastPressPos.current.x
-      let dy = e.offsetY - lastPressPos.current.y
-      let lastSources = getNewSources(selectIndex.current, dx, dy, 0,0)
-      let config = {
-        streamCount: lastSources.length,
-        VideoInputStreams: lastSources,
-        videoOutputConfiguration: {
-          dimensions: { width: max_width, height: max_height },
-        },
-      }
-      engine.current.updateLocalTranscoderConfiguration(config)
-      updateSelectBoxRect(selectIndex.current, dx, dy,0,0)
-      console.log('------mouseup event lastSources: ', lastSources)
-      sources.current = lastSources
-      selectIndex.current = -1
+    console.log('----handleMouseDown e: ',e.target.id)
+    if (e.target.id === 'canvas-mask') {
+      let index = getSelectNode(e.offsetX, e.offsetY)
+      setCheckIndex(index)
+      updateSelectBoxRect(index,0,0,0,0)
+      console.log('----index: ',index)
+      console.log(sources)
     }
   }
 
@@ -279,9 +231,9 @@ const Combination: React.FC = () => {
     }
   }
 
-  const updateSources = (index: number, dx: number, dy: number,dw: number,dh: number) => {
+  const updateSources = (index: number, x: number, y: number,dw: number,dh: number) => {
     if (index >= 0) {
-      let newSources = getNewSources(index,dx,dy,dw,dh)
+      let newSources = getNewSources(index,x,y,dw,dh)
       console.log('----updateSources newSources: ',  newSources)
       let config ={
         streamCount: newSources.length,
@@ -295,9 +247,13 @@ const Combination: React.FC = () => {
     }
   }
 
-  const getNewSources = (selectIndex: number, dx: number, dy: number, dw: number, dh:number):TranscodingVideoStream[] => {
+  const getNewSources = (selectIndex: number, x: number, y: number, dw: number, dh:number):TranscodingVideoStream[] => {
     let newSources = sources.current.map((item, index) => {
       if (index === selectIndex) {
+        let dx = Math.floor(x/zoom.current) - item.x!
+        let dy = Math.floor(y/zoom.current) - item.y!
+        console.log('----getNewSource dx, dy: ',dx,dy)
+        console.log('----getNewSource dw, dh: ',dw,dh)
         return {
           ...item,
           x: item.x! + dx,
@@ -375,13 +331,6 @@ const Combination: React.FC = () => {
     return () => {
       console.log('unmonut component')
       setIsOpen(false)
-      const canvas = video1Ref.current?.querySelector('canvas')
-      if (canvas) {
-        canvas.removeEventListener('mousedown', handleMouseDown)
-        canvas.removeEventListener('mousemove', handleMouseMove)
-        canvas.removeEventListener('mouseup', handleMouseUp)
-
-      }
       engine.current.release()
     }
   }, [])
@@ -392,7 +341,7 @@ const Combination: React.FC = () => {
       <div className={styles.display}>
         <div className='video1' ref={video1Ref} style={{height:'100%'}}></div>
         {
-          (checkIndex>=0)&&<SelectBox {...boxRect} resizingCallBack={updateResize}/>
+          (checkIndex>=0)&&(<SelectBox {...boxRect} resizingCallBack={updateResize}/>)
         }
       </div>
       <h3 style={{textAlign:'center'}}>Materal Show</h3>
