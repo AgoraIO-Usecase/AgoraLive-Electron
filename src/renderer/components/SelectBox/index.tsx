@@ -80,22 +80,14 @@ const SelectBox = (props : ConfigProps) => {
       size = {size}
       position = {position}
       onDrag = {(e,d) => {
-        console.log('----onDrag: ',d)
-        console.log('----onDrag x,y:',d.x, d.y)
         setPosition({x: d.x, y:d.y})
         props.resizingCallBack!(d.x, d.y, 0, 0, true)
       }}
       onDragStop={(e, d) => {
-        console.log('----onDragStop x,y:',d.x, d.y)
         setPosition({x: d.x, y:d.y})
         props.resizingCallBack!(d.x, d.y, 0, 0, false)
       }}
       onResize={(e, direction, ref, delta, position) => {
-        console.log('==------width, height: ',ref.offsetWidth,ref.offsetHeight)
-        console.log('----onResize position: ',position)
-        console.log('----onResize e: ',e)
-        console.log('----onResize delta: ',delta)
-
         setPosition({
           ...position
         })
