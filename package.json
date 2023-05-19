@@ -1,5 +1,5 @@
 {
-  "name": "Agora-Electron-API-Example",
+  "name": "Agora-Electron-Demo",
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
@@ -17,7 +17,7 @@
   "build": {
     "asar": false,
     "buildDependenciesFromSource": true,
-    "productName": "Agora-Electron-API-Example",
+    "productName": "Agora-Electron-Demo",
     "appId": "agora.io.ElectronApiExample",
     "files": [
       "!*.log"

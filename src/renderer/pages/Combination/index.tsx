@@ -17,11 +17,13 @@ import test1 from '../../assets/images/test1.jpg';
 import test2 from '../../assets/images/test2.jpg';
 import test3 from '../../assets/images/test3.jpg';
 import test4 from '../../assets/images/test4.jpg';
+import gif from '../../assets/images/gif.gif';
 
 const test1Url = getResourcePath('test1.jpg')
 const test2Url = getResourcePath('test2.jpg')
 const test3Url = getResourcePath('test3.jpg')
 const test4Url = getResourcePath('test4.jpg')
+const testGif = getResourcePath('gif.gif')
 const max_width = 1280
 const max_height = 720
 
@@ -120,6 +122,10 @@ const Combination: React.FC = () => {
     streams.push({
       sourceType: MediaSourceType.RtcImageJpegSource,
       imageUrl: test4Url,
+    })
+    streams.push({
+      sourceType: MediaSourceType.RtcImageGifSource,
+      imageUrl: testGif,
     })
 
     streams.map((value, index) => {
@@ -351,6 +357,7 @@ const Combination: React.FC = () => {
         <img src={test2} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
         <img src={test3} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
         <img src={test4} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
+        <img src={gif} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
       </div>
       <div style={{ marginTop:'10px', display:'flex', justifyContent:'center' }}>
         <button onClick={handleOnClick}>{isOpen ? 'Stop Composite Picture': 'Start Composite Picture'}</button>
