@@ -7,8 +7,12 @@ import {
   VideoMirrorModeType,
   VideoSourceType,
   MediaSourceType,
+  MediaPlayerState,
+  MediaPlayerError,
   ChannelProfileType,
-  TranscodingVideoStream
+  TranscodingVideoStream,
+  IMediaPlayer,
+  IMediaPlayerSourceObserver
 } from 'agora-electron-sdk';
 import { getResourcePath } from '../../utils/index';
 import SelectBox from '../../components/SelectBox'
@@ -16,13 +20,11 @@ import SelectBox from '../../components/SelectBox'
 import test1 from '../../assets/images/test1.jpg';
 import test2 from '../../assets/images/test2.jpg';
 import test3 from '../../assets/images/test3.jpg';
-import test4 from '../../assets/images/test4.jpg';
 import gif from '../../assets/images/gif.gif';
 
 const test1Url = getResourcePath('test1.jpg')
 const test2Url = getResourcePath('test2.jpg')
 const test3Url = getResourcePath('test3.jpg')
-const test4Url = getResourcePath('test4.jpg')
 const testGif = getResourcePath('gif.gif')
 const max_width = 1280
 const max_height = 720
@@ -30,10 +32,13 @@ const max_height = 720
 const Combination: React.FC = () => {
   const video1Ref = useRef<HTMLDivElement>(null)
   const video2Ref = useRef<HTMLDivElement>(null)
+  const mediaRef = useRef<HTMLDivElement>(null)
+  const [openPlayer, setOpenPlayer] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [checkIndex, setCheckIndex] = useState(-1)
   const sources = useRef<TranscodingVideoStream[]>([])
   const engine = useRef(createAgoraRtcEngine());
+  const player = useRef<IMediaPlayer | null>(null)
   const zoom = useRef(1)
   const [boxRect, setBoxRect] = useState({
     containerId: 'canvas-mask',
@@ -42,6 +47,51 @@ const Combination: React.FC = () => {
     width: 150,
     height: 150
   })
+
+  const MediaPlayerListener: IMediaPlayerSourceObserver = {
+    onPlayerSourceStateChanged(state: MediaPlayerState, ec: MediaPlayerError) {
+      console.log('onPlayerSourceStateChanged', 'state', state, 'ec', ec);
+      switch (state) {
+        case MediaPlayerState.PlayerStateIdle:
+          break;
+        case MediaPlayerState.PlayerStateOpening:
+          break;
+        case MediaPlayerState.PlayerStateOpenCompleted:
+          console.log('------state is PlayerStateOpenCompleted')
+          //this.setState({ open: true });
+          // Auto play on this case
+          setOpenPlayer(true)
+          player.current?.play();
+          break;
+        case MediaPlayerState.PlayerStatePlaying:
+          break;
+        case MediaPlayerState.PlayerStatePaused:
+          break;
+        case MediaPlayerState.PlayerStatePlaybackCompleted:
+          break;
+        case MediaPlayerState.PlayerStatePlaybackAllLoopsCompleted:
+          break;
+        case MediaPlayerState.PlayerStateStopped:
+          break;
+        case MediaPlayerState.PlayerStatePausingInternal:
+          break;
+        case MediaPlayerState.PlayerStateStoppingInternal:
+          break;
+        case MediaPlayerState.PlayerStateSeekingInternal:
+          break;
+        case MediaPlayerState.PlayerStateGettingInternal:
+          break;
+        case MediaPlayerState.PlayerStateNoneInternal:
+          break;
+        case MediaPlayerState.PlayerStateDoNothingInternal:
+          break;
+        case MediaPlayerState.PlayerStateSetTrackInternal:
+          break;
+        case MediaPlayerState.PlayerStateFailed:
+          break;
+      }
+    }
+  }
 
   const initEngine = () => {
     engine.current.initialize({
@@ -107,6 +157,12 @@ const Combination: React.FC = () => {
     streams.push({
       sourceType: MediaSourceType.PrimaryCameraSource
     })
+    if (openPlayer) {
+      streams.push({
+        sourceType: MediaSourceType.MediaPlayerSource,
+        imageUrl: player.current?.getMediaPlayerId().toString(),
+      });
+    }
     streams.push({
       sourceType: MediaSourceType.RtcImageJpegSource,
       imageUrl: test1Url,
@@ -118,10 +174,6 @@ const Combination: React.FC = () => {
     streams.push({
       sourceType: MediaSourceType.RtcImageJpegSource,
       imageUrl: test3Url,
-    })
-    streams.push({
-      sourceType: MediaSourceType.RtcImageJpegSource,
-      imageUrl: test4Url,
     })
     streams.push({
       sourceType: MediaSourceType.RtcImageGifSource,
@@ -290,6 +342,23 @@ const Combination: React.FC = () => {
     return selectIndex
   }
 
+  const createMediaPlayer = () => {
+    let url = 'https://agora-adc-artifacts.oss-cn-beijing.aliyuncs.com/video/meta_live_mpk.mov'
+    player.current = engine.current.createMediaPlayer()
+    console.log('----createMediaPlayer player: ',player.current)
+    player.current.registerPlayerSourceObserver(MediaPlayerListener)
+    player.current.open(url, 0)
+  }
+
+  const destroyMediaPlayer = () => {
+    console.log('------destroyMediaPlayer')
+    if (!player.current) {
+      return
+    }
+    engine.current?.destroyMediaPlayer(player.current)
+    setOpenPlayer(false)
+  }
+
   useEffect(() => {
     const updateDisplayRender = () => {
       console.log('---updateDisplayRender: ', isOpen)
@@ -305,6 +374,7 @@ const Combination: React.FC = () => {
         engine.current.setupLocalVideo({
           sourceType: VideoSourceType.VideoSourceTranscoded,
           view: video1Ref.current,
+          uid: Config.uid,
           mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
           renderMode: RenderModeType.RenderModeFit,
         });
@@ -312,6 +382,7 @@ const Combination: React.FC = () => {
         engine.current.setupLocalVideo({
           sourceType: VideoSourceType.VideoSourceCameraPrimary,
           view: video1Ref.current,
+          uid: Config.uid,
           mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
           renderMode: RenderModeType.RenderModeFit,
         });
@@ -319,9 +390,10 @@ const Combination: React.FC = () => {
       engine.current.setupLocalVideo({
         sourceType: VideoSourceType.VideoSourceCameraPrimary,
         view: video2Ref.current,
+        uid: Config.uid,
         mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
         renderMode: RenderModeType.RenderModeFit,
-      });
+      })
     }
     console.log('-----isOpen: ',isOpen)
     updateDisplayRender()
@@ -333,10 +405,24 @@ const Combination: React.FC = () => {
   },[isOpen])
 
   useEffect(() => {
+    if (openPlayer) {
+      let mediaId = player.current?.getMediaPlayerId()
+      console.log('----createMediaPlayer mediaId: ',mediaId)
+      engine.current.setupLocalVideo({
+        sourceType: VideoSourceType.VideoSourceMediaPlayer,
+        view: mediaRef.current,
+        uid: mediaId,
+        renderMode: RenderModeType.RenderModeFit,
+      })
+    }
+  }, [openPlayer])
+
+  useEffect(() => {
     initEngine()
     return () => {
       console.log('unmonut component')
       setIsOpen(false)
+      destroyMediaPlayer()
       engine.current.release()
     }
   }, [])
@@ -353,14 +439,17 @@ const Combination: React.FC = () => {
       <h3 style={{textAlign:'center'}}>Materal Show</h3>
       <div className={styles.material}>
         <div ref={video2Ref} style={{ width:'120px', height:'120px'}}></div>
+        {
+          openPlayer&&(<div ref={mediaRef} style={{ width:'120px', height:'120px',margin:'0 10px'}}></div>)
+        }
         <img src={test1} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
         <img src={test2} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
         <img src={test3} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
-        <img src={test4} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
         <img src={gif} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
       </div>
       <div style={{ marginTop:'10px', display:'flex', justifyContent:'center' }}>
         <button onClick={handleOnClick}>{isOpen ? 'Stop Composite Picture': 'Start Composite Picture'}</button>
+        <button onClick={openPlayer ? destroyMediaPlayer : createMediaPlayer}>{`${openPlayer ? 'destroy' : 'create'} Media Player`}</button>
         {(checkIndex>=0)&&(
           <>
             <button onClick={setOnTop}>Set Top</button>
