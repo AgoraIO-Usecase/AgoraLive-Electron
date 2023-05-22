@@ -151,8 +151,8 @@ const Combination: React.FC = () => {
   }
 
   const getLocalTransConfig = ()=> {
-    const  width = 300,
-           height = 300
+    const  width = 200,
+           height = 200
     const streams: TranscodingVideoStream[] = []
     streams.push({
       sourceType: MediaSourceType.PrimaryCameraSource
@@ -414,6 +414,10 @@ const Combination: React.FC = () => {
         uid: mediaId,
         renderMode: RenderModeType.RenderModeFit,
       })
+    }
+    if (isOpen) {
+      let config = getLocalTransConfig()
+      engine.current.updateLocalTranscoderConfiguration(config)
     }
   }, [openPlayer])
 
