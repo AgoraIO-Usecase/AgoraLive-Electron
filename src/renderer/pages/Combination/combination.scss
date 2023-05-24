@@ -14,3 +14,11 @@
   width: 150px;
   height: 180px;
 }
+.videoWapper {
+  display: flex;
+  flex-direction: column;
+  .videoDropdown {
+    width: 240px;
+    height: 40px;
+  }
+}

@@ -3,6 +3,8 @@ declare namespace CombinationScssNamespace {
     captureWapper: string;
     display: string;
     material: string;
+    videoDropdown: string;
+    videoWapper: string;
   }
 }
 

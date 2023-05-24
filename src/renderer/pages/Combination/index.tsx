@@ -13,7 +13,8 @@ import {
   TranscodingVideoStream,
   IMediaPlayer,
   IMediaPlayerSourceObserver,
-  ScreenCaptureSourceType
+  ScreenCaptureSourceType,
+  VideoDeviceInfo
 } from 'agora-electron-sdk'
 import {
   AgoraButton,
@@ -46,6 +47,8 @@ const Combination: React.FC = () => {
   const [captureSrc, setCaptureSrc] = useState<any>([])
   const [targetSrc, setTargetSrc] = useState<any>(undefined)
   const [isScreenCapture, setIsScreenCapture] = useState(false)
+  const [videoDevices, setVideoDevices] = useState<VideoDeviceInfo[]>([])
+  const [videoDeviceId, setVideoDeviceId] = useState<string[]>([])
   const zoom = useRef(1)
   const [boxRect, setBoxRect] = useState({
     containerId: 'canvas-mask',
@@ -113,6 +116,45 @@ const Combination: React.FC = () => {
     engine.current.enableVideo();
     engine.current.startPreview();
     getScreenCaptureSources()
+    enumerateDevices()
+  }
+
+  const enumerateDevices = () => {
+    const videoDevices = engine.current
+      ?.getVideoDeviceManager()
+      .enumerateVideoDevices();
+    console.log('----enumerateDevices videoDevices: ',videoDevices)
+    setVideoDevices(videoDevices)
+    setVideoDeviceId(videoDevices?.length ? [videoDevices!.at(0)!.deviceId!] : [])
+  }
+
+  const _getVideoSourceTypeCamera = (value: string) => {
+    return [
+      VideoSourceType.VideoSourceCameraPrimary,
+      VideoSourceType.VideoSourceCameraSecondary,
+    ][videoDevices?.findIndex(({ deviceId }) => deviceId === value) ?? -1];
+  };
+
+  const startCameraCapture = (deviceId: string) => {
+    if (VideoSourceType.VideoSourceCameraPrimary === _getVideoSourceTypeCamera(deviceId)) {
+      engine.current?.startPrimaryCameraCapture({
+        deviceId,
+      })
+    }
+    if (VideoSourceType.VideoSourceCameraSecondary === _getVideoSourceTypeCamera(deviceId)) {
+      engine.current?.startSecondaryCameraCapture({
+        deviceId,
+      })
+    }
+  }
+
+  const stopCameraCapture = (deviceId: string) => {
+    if (VideoSourceType.VideoSourceCameraPrimary === _getVideoSourceTypeCamera(deviceId)) {
+      engine.current?.stopPrimaryCameraCapture()
+    }
+    if (VideoSourceType.VideoSourceCameraSecondary === _getVideoSourceTypeCamera(deviceId)) {
+      engine.current?.stopSecondaryCameraCapture()
+    }
   }
 
   const getScreenCaptureSources = () => {
@@ -208,9 +250,11 @@ const Combination: React.FC = () => {
     const  width = 200,
            height = 200
     const streams: TranscodingVideoStream[] = []
-    streams.push({
-      sourceType: MediaSourceType.PrimaryCameraSource
-    })
+    if (videoDeviceId?.length) {
+      streams.push({
+        sourceType: MediaSourceType.PrimaryCameraSource
+      })
+    }
     if (openPlayer) {
       streams.push({
         sourceType: MediaSourceType.MediaPlayerSource,
@@ -229,7 +273,6 @@ const Combination: React.FC = () => {
       sourceType: MediaSourceType.RtcImageGifSource,
       imageUrl: testGif,
     })
-
     if (isScreenCapture) {
       streams.push({
         sourceType: MediaSourceType.PrimaryScreenSource,
@@ -475,14 +518,7 @@ const Combination: React.FC = () => {
       let config = getLocalTransConfig()
       engine.current.updateLocalTranscoderConfiguration(config)
     }
-  }, [openPlayer])
-
-  useEffect(() => {
-    if (isOpen) {
-      let config = getLocalTransConfig()
-      engine.current.updateLocalTranscoderConfiguration(config)
-    }
-  }, [isScreenCapture])
+  }, [openPlayer, isScreenCapture, videoDeviceId])
 
   useEffect(() => {
     initEngine()
@@ -512,7 +548,30 @@ const Combination: React.FC = () => {
         )}
       <h3 style={{textAlign:'center', margin: '0 3px'}}>Materal Show</h3>
       <div className={styles.material}>
-        <div ref={video2Ref} style={{ width:'100px', height:'100px'}}></div>
+        <div className={styles.videoWapper}>
+          <AgoraDropdown
+            title={'videoDeviceId'}
+            className={styles.videoDropdown}
+            items={videoDevices?.map((value) => {
+              return {
+                value: value.deviceId!,
+                label: value.deviceName!,
+              };
+            })}
+            value={videoDeviceId}
+            onValueChange={(value, index) => {
+              if (videoDeviceId?.indexOf(value) === -1) {
+                startCameraCapture(value);
+                setVideoDeviceId([...videoDeviceId, value])
+              } else {
+                stopCameraCapture(value);
+                let newDeviceId = videoDeviceId?.filter((v) => v !== value)
+                setVideoDeviceId(newDeviceId)
+              }
+            }}
+          />
+          <div ref={video2Ref} style={{ width:'200px', height:'200px'}}></div>
+        </div>
         {
           openPlayer&&(<div ref={mediaRef} style={{ width:'100px', height:'100px',margin:'0 5px'}}></div>)
         }
