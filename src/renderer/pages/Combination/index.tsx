@@ -27,10 +27,6 @@ import { getResourcePath } from '../../utils/index'
 import SelectBox from '../../components/SelectBox'
 import { rgbImageBufferToBase64 } from '../../utils/base64';
 
-import test1 from '../../assets/images/test1.jpg'
-import test2 from '../../assets/images/test2.jpg'
-import gif from '../../assets/images/gif.gif'
-
 const test1Url = getResourcePath('test1.jpg')
 const test2Url = getResourcePath('test2.jpg')
 const testGif = getResourcePath('gif.gif')
@@ -58,6 +54,10 @@ const Combination: React.FC = () => {
     width: 150,
     height: 150
   })
+
+  console.log('---init test1Url: ',test1Url)
+  console.log('---init test2Url: ',test2Url)
+  console.log('---init testGif: ',testGif)
 
   const MediaPlayerListener: IMediaPlayerSourceObserver = {
     onPlayerSourceStateChanged(state: MediaPlayerState, ec: MediaPlayerError) {
@@ -516,9 +516,9 @@ const Combination: React.FC = () => {
         {
           openPlayer&&(<div ref={mediaRef} style={{ width:'100px', height:'100px',margin:'0 5px'}}></div>)
         }
-        <img src={test1} style={{width: '100px',height:'100px',margin:'0 5px'}}></img>
-        <img src={test2} style={{width: '100px',height:'100px',margin:'0 5px'}}></img>
-        <img src={gif} style={{width: '100px',height:'100px',margin:'0 5px'}}></img>
+        <img src={`file://${test1Url}`} style={{width: '100px',height:'100px',margin:'0 5px'}}></img>
+        <img src={`file://${test2Url}`} style={{width: '100px',height:'100px',margin:'0 5px'}}></img>
+        <img src={`file://${testGif}`} style={{width: '100px',height:'100px',margin:'0 5px'}}></img>
         <div className={styles.captureWapper}>
           <AgoraDropdown
             title={'targetSource'}
