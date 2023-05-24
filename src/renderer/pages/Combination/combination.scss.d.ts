@@ -1,5 +1,6 @@
 declare namespace CombinationScssNamespace {
   export interface ICombinationScss {
+    captureWapper: string;
     display: string;
     material: string;
   }

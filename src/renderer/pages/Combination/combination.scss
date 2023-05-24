@@ -1,10 +1,16 @@
 .display {
   position: relative;
-  height: 380px;
+  height: 340px;
   background-color: rgb(240, 234, 234);
 }
 .material {
   display: flex;
   height: 200px;
   background-color: rgb(240, 234, 234);
+}
+.captureWapper {
+  display: flex;
+  flex-direction: column;
+  width: 150px;
+  height: 180px;
 }

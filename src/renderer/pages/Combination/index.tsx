@@ -12,19 +12,27 @@ import {
   ChannelProfileType,
   TranscodingVideoStream,
   IMediaPlayer,
-  IMediaPlayerSourceObserver
-} from 'agora-electron-sdk';
-import { getResourcePath } from '../../utils/index';
+  IMediaPlayerSourceObserver,
+  ScreenCaptureSourceType
+} from 'agora-electron-sdk'
+import {
+  AgoraButton,
+  AgoraDivider,
+  AgoraDropdown,
+  AgoraImage,
+  AgoraText,
+  AgoraTextInput,
+} from '../../components/ui';
+import { getResourcePath } from '../../utils/index'
 import SelectBox from '../../components/SelectBox'
+import { rgbImageBufferToBase64 } from '../../utils/base64';
 
-import test1 from '../../assets/images/test1.jpg';
-import test2 from '../../assets/images/test2.jpg';
-import test3 from '../../assets/images/test3.jpg';
-import gif from '../../assets/images/gif.gif';
+import test1 from '../../assets/images/test1.jpg'
+import test2 from '../../assets/images/test2.jpg'
+import gif from '../../assets/images/gif.gif'
 
 const test1Url = getResourcePath('test1.jpg')
 const test2Url = getResourcePath('test2.jpg')
-const test3Url = getResourcePath('test3.jpg')
 const testGif = getResourcePath('gif.gif')
 const max_width = 1280
 const max_height = 720
@@ -39,6 +47,9 @@ const Combination: React.FC = () => {
   const sources = useRef<TranscodingVideoStream[]>([])
   const engine = useRef(createAgoraRtcEngine());
   const player = useRef<IMediaPlayer | null>(null)
+  const [captureSrc, setCaptureSrc] = useState<any>([])
+  const [targetSrc, setTargetSrc] = useState<any>(undefined)
+  const [isScreenCapture, setIsScreenCapture] = useState(false)
   const zoom = useRef(1)
   const [boxRect, setBoxRect] = useState({
     containerId: 'canvas-mask',
@@ -101,7 +112,50 @@ const Combination: React.FC = () => {
     });
     engine.current.enableVideo();
     engine.current.startPreview();
+    getScreenCaptureSources()
   }
+
+  const getScreenCaptureSources = () => {
+    const sources = engine.current?.getScreenCaptureSources(
+      { width: 1920, height: 1080 },
+      { width: 64, height: 64 },
+      true
+    );
+    console.log('---getScreenCaptureSources: ', sources)
+    setCaptureSrc(sources)
+    setTargetSrc(sources?.at(0))
+  }
+
+  const startScreenCapture = () => {
+    if (!targetSrc) {
+      console.error(`targetSource is invalid`);
+    }
+    engine.current?.startPrimaryScreenCapture({
+      isCaptureWindow:
+      targetSrc!.type ===
+        ScreenCaptureSourceType.ScreencapturesourcetypeWindow,
+      screenRect: { width: 0, height: 0, x: 0, y: 0 },
+      windowId: targetSrc!.sourceId,
+      displayId: targetSrc!.sourceId,
+      params: {
+        dimensions: { width: 1920, height: 1080 },
+        bitrate: 1000,
+        frameRate: 15,
+        captureMouseCursor: false,
+        windowFocus: false,
+        excludeWindowList: [],
+        excludeWindowCount: 0,
+      },
+
+      regionRect: { x: 0, y: 0, width: 0, height: 0 },
+    });
+    setIsScreenCapture(true)
+  };
+
+  const stopScreenCapture = () => {
+    engine.current?.stopPrimaryScreenCapture()
+    setIsScreenCapture(false)
+  };
 
   const updateCanvasConfig = () => {
     const canvas:any = video1Ref.current?.querySelector('canvas')
@@ -172,13 +226,15 @@ const Combination: React.FC = () => {
       imageUrl: test2Url,
     })
     streams.push({
-      sourceType: MediaSourceType.RtcImageJpegSource,
-      imageUrl: test3Url,
-    })
-    streams.push({
       sourceType: MediaSourceType.RtcImageGifSource,
       imageUrl: testGif,
     })
+
+    if (isScreenCapture) {
+      streams.push({
+        sourceType: MediaSourceType.PrimaryScreenSource,
+      });
+    }
 
     streams.map((value, index) => {
       const maxNumPerRow = Math.floor(max_width / width)
@@ -422,6 +478,13 @@ const Combination: React.FC = () => {
   }, [openPlayer])
 
   useEffect(() => {
+    if (isOpen) {
+      let config = getLocalTransConfig()
+      engine.current.updateLocalTranscoderConfiguration(config)
+    }
+  }, [isScreenCapture])
+
+  useEffect(() => {
     initEngine()
     return () => {
       console.log('unmonut component')
@@ -440,27 +503,47 @@ const Combination: React.FC = () => {
           (checkIndex>=0)&&(<SelectBox {...boxRect} resizingCallBack={updateResize}/>)
         }
       </div>
-      <h3 style={{textAlign:'center'}}>Materal Show</h3>
+      {(checkIndex>=0)&&(
+          <div style={{display: 'flex', justifyContent: 'center',margin: '0 5px'}}>
+            <button onClick={setOnTop}>Set Top</button>
+            <button onClick={setOnBottom}>Set Bottom</button>
+            <button onClick={onReset}>Reset</button>
+          </div>
+        )}
+      <h3 style={{textAlign:'center', margin: '0 3px'}}>Materal Show</h3>
       <div className={styles.material}>
-        <div ref={video2Ref} style={{ width:'120px', height:'120px'}}></div>
+        <div ref={video2Ref} style={{ width:'100px', height:'100px'}}></div>
         {
-          openPlayer&&(<div ref={mediaRef} style={{ width:'120px', height:'120px',margin:'0 10px'}}></div>)
+          openPlayer&&(<div ref={mediaRef} style={{ width:'100px', height:'100px',margin:'0 5px'}}></div>)
         }
-        <img src={test1} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
-        <img src={test2} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
-        <img src={test3} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
-        <img src={gif} style={{width: '120px',height:'120px',margin:'0 10px'}}></img>
+        <img src={test1} style={{width: '100px',height:'100px',margin:'0 5px'}}></img>
+        <img src={test2} style={{width: '100px',height:'100px',margin:'0 5px'}}></img>
+        <img src={gif} style={{width: '100px',height:'100px',margin:'0 5px'}}></img>
+        <div className={styles.captureWapper}>
+          <AgoraDropdown
+            title={'targetSource'}
+            items={captureSrc?.map((value) => {
+              return {
+                value: value.sourceId!,
+                label: value.sourceName!,
+              };
+            })}
+            value={targetSrc?.sourceId}
+            onValueChange={(value, index) => {
+              setTargetSrc(captureSrc?.at(index))
+            }}
+          />
+          {targetSrc ? (
+            <AgoraImage
+              source={rgbImageBufferToBase64(targetSrc.thumbImage)}
+            />
+          ) : undefined}
+        </div>
       </div>
       <div style={{ marginTop:'10px', display:'flex', justifyContent:'center' }}>
         <button onClick={handleOnClick}>{isOpen ? 'Stop Composite Picture': 'Start Composite Picture'}</button>
         <button onClick={openPlayer ? destroyMediaPlayer : createMediaPlayer}>{`${openPlayer ? 'destroy' : 'create'} Media Player`}</button>
-        {(checkIndex>=0)&&(
-          <>
-            <button onClick={setOnTop}>Set Top</button>
-            <button onClick={setOnBottom}>Set Bottom</button>
-            <button onClick={onReset}>Reset</button>
-          </>
-        )}
+        <button onClick={isScreenCapture ? stopScreenCapture : startScreenCapture}>{`${isScreenCapture ? 'stop' : 'start'} Screen Capture`}</button>
       </div>
     </div>
   )

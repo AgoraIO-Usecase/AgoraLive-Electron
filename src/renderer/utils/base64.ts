@@ -30,6 +30,7 @@ export default (input) => {
 };
 
 export const rgbImageBufferToBase64 = (target) => {
+  console.log('---rgbImageBufferToBase64 target: ', target.width, target.height)
   if (!target) {
     return '';
   }
