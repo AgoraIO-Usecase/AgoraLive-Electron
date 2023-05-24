@@ -4,6 +4,7 @@ import {
   Link,
   Route,
   Switch,
+  Redirect
 } from 'react-router-dom';
 import { Layout, Menu } from 'antd'
 import { GithubOutlined, SettingOutlined } from '@ant-design/icons';
@@ -18,7 +19,7 @@ const App :React.FC = () => {
 
   const renderMenu = () => {
     return (
-      <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline">
+      <Menu theme="dark" defaultSelectedKeys={['setting']} mode="inline">
         <Item key="setting" icon={<SettingOutlined />}>
           <Link to="/">Setting</Link>
         </Item>
@@ -36,6 +37,9 @@ const App :React.FC = () => {
       <Switch>
         <Route path="/" children={<AuthInfoScreen />} exact={true} />
         <Route path="/combination" children={<Combination />} />
+        <Route path="*">
+          <Redirect to="/" />
+        </Route>
       </Switch>
     )
   }
