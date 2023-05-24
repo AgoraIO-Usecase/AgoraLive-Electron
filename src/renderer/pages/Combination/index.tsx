@@ -14,7 +14,10 @@ import {
   IMediaPlayer,
   IMediaPlayerSourceObserver,
   ScreenCaptureSourceType,
-  VideoDeviceInfo
+  VideoDeviceInfo,
+  ClientRoleType,
+  RtcConnection,
+  RtcStats
 } from 'agora-electron-sdk'
 import {
   AgoraButton,
@@ -49,6 +52,10 @@ const Combination: React.FC = () => {
   const [isScreenCapture, setIsScreenCapture] = useState(false)
   const [videoDevices, setVideoDevices] = useState<VideoDeviceInfo[]>([])
   const [videoDeviceId, setVideoDeviceId] = useState<string[]>([])
+  const [channelId, setChannelId] = useState(Config.channelId)
+  const [joinChannelSuccess, setJoinChannelSuccess] = useState(false)
+  const uid = Config.uid
+  const token = Config.token
   const zoom = useRef(1)
   const [boxRect, setBoxRect] = useState({
     containerId: 'canvas-mask',
@@ -58,53 +65,53 @@ const Combination: React.FC = () => {
     height: 150
   })
 
-  console.log('---init test1Url: ',test1Url)
-  console.log('---init test2Url: ',test2Url)
-  console.log('---init testGif: ',testGif)
-
   const MediaPlayerListener: IMediaPlayerSourceObserver = {
     onPlayerSourceStateChanged(state: MediaPlayerState, ec: MediaPlayerError) {
       console.log('onPlayerSourceStateChanged', 'state', state, 'ec', ec);
       switch (state) {
         case MediaPlayerState.PlayerStateIdle:
-          break;
+          break
         case MediaPlayerState.PlayerStateOpening:
-          break;
+          break
         case MediaPlayerState.PlayerStateOpenCompleted:
           console.log('------state is PlayerStateOpenCompleted')
           //this.setState({ open: true });
           // Auto play on this case
           setOpenPlayer(true)
-          player.current?.play();
-          break;
-        case MediaPlayerState.PlayerStatePlaying:
-          break;
-        case MediaPlayerState.PlayerStatePaused:
-          break;
-        case MediaPlayerState.PlayerStatePlaybackCompleted:
-          break;
-        case MediaPlayerState.PlayerStatePlaybackAllLoopsCompleted:
-          break;
-        case MediaPlayerState.PlayerStateStopped:
-          break;
-        case MediaPlayerState.PlayerStatePausingInternal:
-          break;
-        case MediaPlayerState.PlayerStateStoppingInternal:
-          break;
-        case MediaPlayerState.PlayerStateSeekingInternal:
-          break;
-        case MediaPlayerState.PlayerStateGettingInternal:
-          break;
-        case MediaPlayerState.PlayerStateNoneInternal:
-          break;
-        case MediaPlayerState.PlayerStateDoNothingInternal:
-          break;
-        case MediaPlayerState.PlayerStateSetTrackInternal:
-          break;
-        case MediaPlayerState.PlayerStateFailed:
-          break;
+          player.current?.play()
+          break
       }
     }
+  }
+
+  const registerChannelEvent = () => {
+    engine.current.addListener(
+      'onJoinChannelSuccess',
+      (connection: RtcConnection, elapsed: number) => {
+        console.log(
+          'onJoinChannelSuccess',
+          'connection',
+          connection,
+          'elapsed',
+          elapsed
+        );
+        setJoinChannelSuccess(true);
+      }
+    );
+
+    engine.current.addListener(
+      'onLeaveChannel',
+      (connection: RtcConnection, stats: RtcStats) => {
+        console.log(
+          'onLeaveChannel',
+          'connection',
+          connection,
+          'stats',
+          stats
+        );
+        setJoinChannelSuccess(false);
+      }
+    );
   }
 
   const initEngine = () => {
@@ -117,6 +124,7 @@ const Combination: React.FC = () => {
     engine.current.startPreview();
     getScreenCaptureSources()
     enumerateDevices()
+    registerChannelEvent()
   }
 
   const enumerateDevices = () => {
@@ -133,7 +141,33 @@ const Combination: React.FC = () => {
       VideoSourceType.VideoSourceCameraPrimary,
       VideoSourceType.VideoSourceCameraSecondary,
     ][videoDevices?.findIndex(({ deviceId }) => deviceId === value) ?? -1];
-  };
+  }
+
+  const joinChannel = () => {
+    if (!channelId) {
+      console.error('channelId is invalid');
+      return
+    }
+    if (uid < 0) {
+      console.error('uid is invalid');
+      return
+    }
+
+    // start joining channel
+    // 1. Users can only see each other after they join the
+    // same channel successfully using the same app id.
+    // 2. If app certificate is turned on at dashboard, token is needed
+    // when joining channel. The channel name and uid used to calculate
+    // the token has to match the ones used for channel join
+    engine.current.joinChannel(token, channelId, uid, {
+      // Make myself as the broadcaster to send stream to remote
+      clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+    })
+  }
+
+  const leaveChannel = () => {
+    engine.current.leaveChannel()
+  }
 
   const startCameraCapture = (deviceId: string) => {
     if (VideoSourceType.VideoSourceCameraPrimary === _getVideoSourceTypeCamera(deviceId)) {
@@ -518,7 +552,7 @@ const Combination: React.FC = () => {
       let config = getLocalTransConfig()
       engine.current.updateLocalTranscoderConfiguration(config)
     }
-  }, [openPlayer, isScreenCapture, videoDeviceId])
+  }, [openPlayer, isScreenCapture, videoDeviceId, joinChannelSuccess])
 
   useEffect(() => {
     initEngine()
@@ -529,6 +563,21 @@ const Combination: React.FC = () => {
       engine.current.release()
     }
   }, [])
+
+  function renderChannel() {
+    return (
+      <div style={{display: 'flex', marginLeft: '8px'}}>
+        <input
+          onChange={(event) => {
+            setChannelId(event.target.value);
+          }}
+          placeholder={`channelId`}
+          value={channelId}
+        />
+        <button onClick={joinChannelSuccess ? leaveChannel : joinChannel}>{`${joinChannelSuccess ? 'leave' : 'join'} Channel`}</button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -603,6 +652,7 @@ const Combination: React.FC = () => {
         <button onClick={handleOnClick}>{isOpen ? 'Stop Composite Picture': 'Start Composite Picture'}</button>
         <button onClick={openPlayer ? destroyMediaPlayer : createMediaPlayer}>{`${openPlayer ? 'destroy' : 'create'} Media Player`}</button>
         <button onClick={isScreenCapture ? stopScreenCapture : startScreenCapture}>{`${isScreenCapture ? 'stop' : 'start'} Screen Capture`}</button>
+        {renderChannel()}
       </div>
     </div>
   )
