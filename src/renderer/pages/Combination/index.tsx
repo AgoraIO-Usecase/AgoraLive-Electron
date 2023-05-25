@@ -162,6 +162,9 @@ const Combination: React.FC = () => {
     engine.current.joinChannel(token, channelId, uid, {
       // Make myself as the broadcaster to send stream to remote
       clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+      publishMicrophoneTrack: false,
+      publishCameraTrack: false,
+      publishTrancodedVideoTrack: true,
     })
   }
 
