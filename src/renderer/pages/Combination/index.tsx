@@ -209,32 +209,43 @@ const Combination: React.FC = () => {
     if (!targetSrc) {
       console.error(`targetSource is invalid`);
     }
-    engine.current?.startPrimaryScreenCapture({
-      isCaptureWindow:
-      targetSrc!.type ===
-        ScreenCaptureSourceType.ScreencapturesourcetypeWindow,
-      screenRect: { width: 0, height: 0, x: 0, y: 0 },
-      windowId: targetSrc!.sourceId,
-      displayId: targetSrc!.sourceId,
-      params: {
-        dimensions: { width: 1920, height: 1080 },
-        bitrate: 1000,
-        frameRate: 15,
-        captureMouseCursor: false,
-        windowFocus: false,
-        excludeWindowList: [],
-        excludeWindowCount: 0,
-      },
-
-      regionRect: { x: 0, y: 0, width: 0, height: 0 },
-    });
+    if (targetSrc.type === ScreenCaptureSourceType.ScreencapturesourcetypeScreen) {
+      console.log('------11111 targetSrc: ',targetSrc)
+      engine.current?.startScreenCaptureByDisplayId(
+        targetSrc.sourceId,
+        { width: 0, height: 0, x: 0, y: 0 },
+        {
+          dimensions: { width: 1920, height: 1080 },
+          bitrate: 1000,
+          frameRate: 15,
+          captureMouseCursor: false,
+          windowFocus: false,
+          excludeWindowList: [],
+          excludeWindowCount: 0,
+        }
+      );
+    } else {
+      engine.current?.startScreenCaptureByWindowId(
+        targetSrc.sourceId,
+        { width: 0, height: 0, x: 0, y: 0 },
+        {
+          dimensions: { width: 1920, height: 1080 },
+          bitrate: 1000,
+          frameRate: 15,
+          captureMouseCursor: false,
+          windowFocus: false,
+          excludeWindowList: [],
+          excludeWindowCount: 0,
+        }
+      );
+    }
     setIsScreenCapture(true)
-  };
+  }
 
   const stopScreenCapture = () => {
-    engine.current?.stopPrimaryScreenCapture()
+    engine.current?.stopScreenCapture()
     setIsScreenCapture(false)
-  };
+  }
 
   const updateCanvasConfig = () => {
     const canvas:any = video1Ref.current?.querySelector('canvas')
