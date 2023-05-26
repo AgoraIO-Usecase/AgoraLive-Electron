@@ -9,7 +9,7 @@ Any scene of this project can run successfully alone.
 ### 📋 Requirements
 
 - Agora.io [Developer Account](https://dashboard.agora.io/signin/)
-- [Node.js 14](https://nodejs.org/en/download/) with C++11 support
+- [Node.js 14+](https://nodejs.org/en/download/) with C++11 support
 - [Yarn](https://yarnpkg.com/) package manager
 
 ### 🎉 Steps to run
@@ -19,51 +19,11 @@ First, create a developer account at [Agora.io](https://dashboard.agora.io/signi
 Then do the following:
 
 ```bash
-git clone git@github.com:AgoraIO-Extensions/Electron-SDK.git
-cd example
+git clone git@github.com:AgoraIO-Usecase/AgoraLive-Electron.git
+cd ./
 yarn
 yarn dev
 ```
-
-#### (Optional) Build From Local SDK
-
-```bash
-# example path
-rm -rf node_modules/agora-electron-sdk
-# sdk path
-cd .. && npm install --agora_electron_sdk_pre_built=false && yarn link
-# example path
-cd example && yarn link "agora-electron-sdk"
-```
-
-## 📖 Project structure
-
-- **Basic demos:**
-
-| Demo                                                                         | Description                                        | APIs                                                                                                                                               |
-| ---------------------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [JoinChannelAudio](src/renderer/examples/basic/JoinChannelAudio/JoinChannelAudio.tsx) | basic demo to show audio call                      | getAudioDeviceManager, setAudioProfile,setRecordingDevice, adjustRecordingSignalVolume, adjustAudioMixingPlayoutVolume, adjustPlaybackSignalVolume |
-| [JoinChannelVideo](src/renderer/examples/basic/JoinChannelVideo/JoinChannelVideo.tsx) | video demo with role selection in Editor Inspector | enableVideo, getVideoDeviceManager,setChannelProfile, joinChannelEx, setAudioProfile, setVideoEncoderConfiguration                                 |
-| [StringUid](src/renderer/examples/basic/StringUid/StringUid.tsx)               | basic demo with string uid                         | joinChannelWithUserAccount                                                                                                                         |
-
-- **Advanced demos:**
-
-| Demo                                                                                                                                                                   | Description                     | APIs                                                                                           |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [ScreenShare](./src/renderer/examples/advanced/ScreenShare/ScreenShare.tsx) | sharing application screen view | getScreenCaptureSources, startPrimaryScreenCapture, startSecondaryScreenCapture, joinChannelEx |
-| ...                                                                                                                                                                    | ...                             | ...                                                                                            |
-
-- **hooks demos:**
-
-| Demo                                                                         | Description                                        | APIs                                                                                                                                               |
-| ---------------------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [JoinChannelAudio](src/renderer/examples/hooks/JoinChannelAudio/JoinChannelAudio.tsx) | basic demo to show audio call                      | getAudioDeviceManager, setAudioProfile,setRecordingDevice, adjustRecordingSignalVolume, adjustAudioMixingPlayoutVolume, adjustPlaybackSignalVolume |
-| [JoinChannelVideo](src/renderer/examples/hooks/JoinChannelVideo/JoinChannelVideo.tsx) | video demo with role selection in Editor Inspector | enableVideo, getVideoDeviceManager,setChannelProfile, joinChannelEx, setAudioProfile, setVideoEncoderConfiguration                                 |
-| [StringUid](src/renderer/examples/hooks/StringUid/StringUid.tsx)               | basic demo with string uid                         | joinChannelWithUserAccount                                                                                                                         |
-| [JoinMultipleChannel](src/renderer/examples/hooks/JoinMultipleChannel/JoinMultipleChannel.tsx)               | Joins a channel with the connection ID                         | joinChannelEx, updateChannelMediaOptionsEx                                                                                                                         |
-| [DeviceManager](src/renderer/examples/hooks/DeviceManager/DeviceManager.tsx)               | Management tool that can switch microphone and camera                         | getVideoDeviceManager, getAudioDeviceManager                                                                                                                         |
-| [VirtualBackground](src/renderer/examples/hooks/VirtualBackground/VirtualBackground.tsx)               | Enables/Disables the virtual background (beta feature)                         | enableExtension, enableVirtualBackground                                                                                                                          |
-
 ## 👏 Feedback
 
 If you have any problems or suggestions regarding the sample projects, feel free to file an issue.
