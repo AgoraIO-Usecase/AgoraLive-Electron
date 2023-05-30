@@ -23,7 +23,7 @@ function createMainWindow() {
       webSecurity: false,
     },
   });
-  window.setMinimumSize(800,600)
+  window.setMinimumSize(1024,768)
   window.webContents.openDevTools({
     mode: 'detach',
     activate: true,

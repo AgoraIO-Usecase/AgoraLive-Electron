@@ -1,20 +1,30 @@
 @import "~antd/dist/antd.css";
 
-body {
+html,
+body,
+#app {
   position: relative;
-  color: black;
   height: 100vh;
-
+  color: black;
   font-family: sans-serif;
-  overflow-y: hidden;
+  overflow: hidden;
   margin: 0;
+  padding: 0;
 }
 
-#app {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  max-height: 100%;
+ul, li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 隐藏滚动条 Firefox */
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 .ant-menu-submenu > .ant-menu {

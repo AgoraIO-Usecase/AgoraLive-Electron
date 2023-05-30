@@ -1,0 +1,138 @@
+.gameLiving {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: 0 4px;
+  background-color: rgb(255, 255, 255);
+  .main {
+    display: flex;
+    flex: 4;
+    .mainLeft {
+      display: flex;
+      flex: 3;
+      flex-direction: column;
+      margin-right: 4px;
+      .appConfig {
+        height: 80%;
+        overflow-y: scroll;
+        background-color: rgb(235, 238, 240);
+      }
+      .playMethod {
+        height: 20%;
+        margin-top: 10px;
+        background-color: rgb(235, 238, 240);
+      }
+    }
+    .screenMain {
+      position: relative;
+      flex: 5;
+      margin: 0 8px;
+      background-color: rgb(235, 238, 240);
+      .game {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .person {
+        position: absolute;
+        top: 15%;
+        left: 50%;
+        display: flex;
+        transform: translate(-50%,-50%);
+        gap: 10px;
+        .meta {
+          width: 160px;
+          height: 160px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-top: 16px;
+          border: 1px solid #555252;
+        }
+      }
+      .livingWapper {
+        position: absolute;
+        right: 20px;
+        bottom: 20px;
+      }
+    }
+    .online {
+      position: relative;
+      flex: 2;
+      background-color: rgb(235, 238, 240);
+      p {
+        font-size: 16px;
+        margin-left: 8px;
+        margin-bottom: 8px;
+      }
+      .personList {
+        margin-left: 8px;
+        height: 92%;
+        overflow-y: scroll;
+      }
+    }
+  }
+  .gameMessage {
+    display: flex;
+    flex: 1;
+    margin-top: 5px;
+    .msgOpt {
+      flex: 3;
+      margin-right: 12px;
+      background-color: rgb(235, 238, 240);
+      .optBtnWapper {
+        display: flex;
+        margin-top: 8px;
+      }
+      .msgSend {
+        margin-left: 4px;
+        margin-right: 4px;
+        margin-top: 4px;
+        input {
+          width: 70%;
+        }
+        button {
+          width: 30%;
+        }
+      }
+    }
+    .msgShow {
+      flex: 7;
+      background-color: rgb(235, 238, 240);
+      .title {
+        font-size: 16px;
+        margin-left: 8px;
+        margin-bottom: 4px;
+      }
+      .listContainer {
+        height: 120px;
+        overflow-y: scroll;
+        margin-left: 12px;
+      }
+    }
+  }
+}
+.btnWapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 2px 4px;
+  button {
+    width: 60%;
+  }
+  span {
+    display: flex;
+    justify-content: center;
+    width: 10%;
+    padding: 0;
+    margin: 0;
+  }
+  input {
+    width: 30%;
+  }
+}
