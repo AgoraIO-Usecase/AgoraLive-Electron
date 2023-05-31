@@ -1,6 +1,15 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import {
+  createAgoraRtcEngine,
+  ChannelProfileType,
+  VideoSourceType,
+  VideoMirrorModeType,
+  RenderModeType,
+  ScreenCaptureSourceType
+} from 'agora-electron-sdk'
 import styles from './index.scss'
 import { debounce } from '../../utils'
+import Config from '../../config/agora.config'
 const defaultConfig= {
   appId: '0411799bd126418c9ea73cb37f2c40b4',
   userId: 1101,
@@ -63,9 +72,118 @@ const GameLivingPage : React.FC = () => {
   const [appConfig, setAppConfig] = useState(defaultConfig)
   const [personList, setPersonList] = useState(personMock)
   const [msgList, setMsgList] = useState(msgMock)
+  const [globalDisable, setGlobalDisable] = useState(false)
+  const [isGameShow, setIsGameShow] = useState(false)
   const gameRef = useRef(null)
   const metaRef = useRef(null)
   const visterRef = useRef(null)
+  const engine = useRef(createAgoraRtcEngine())
+
+  useEffect(() => {
+    initEngine()
+    setTimeout(() => {
+      updateVideoSize(metaRef.current)
+    },2500)   
+    return () => {
+      console.log('unmonut component')
+      engine.current.release()
+    }
+  }, [appConfig.appId, appConfig.userId])
+
+  const initEngine = () => {
+    engine.current.initialize({
+      appId: appConfig.appId,
+      logConfig: { filePath: Config.SDKLogPath },
+      channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
+    })
+    engine.current.enableVideo()
+    engine.current.startPreview()
+    try {
+      engine.current.destroyRendererByView(metaRef.current);
+    } catch (e) {
+      console.error(e);
+    }
+    let ret = engine.current.setupLocalVideo({
+      sourceType: VideoSourceType.VideoSourceCameraPrimary,
+      view: metaRef.current,
+      uid: appConfig.userId,
+      mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
+      renderMode: RenderModeType.RenderModeFit,
+    });
+    console.log('----ret: ',ret)
+    if (ret === 0) {
+      setGlobalDisable(true)
+    } else {
+      setGlobalDisable(false)
+    }
+  }
+
+  const updateGameScreenVideo = () => {
+    try {
+      engine.current.destroyRendererByView(gameRef.current);
+    } catch (e) {
+      console.error(e);
+    }
+    let ret = engine.current.setupLocalVideo({
+      sourceType: VideoSourceType.VideoSourceScreen,
+      view: gameRef.current,
+      uid: appConfig.userId,
+      mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
+      renderMode: RenderModeType.RenderModeFit,
+    });
+    console.log('----ret: ',ret)
+  }
+
+  const startScreenCapture = () => {
+    let sources = engine.current?.getScreenCaptureSources({width: 1920, height: 1080},{width: 64, height: 64},true)
+    console.log('-----startScreenCapture sources: ',sources)
+    let gameSource = sources.find((item) => {
+      //return item.sourceName === 'QQ音乐'
+      return item.sourceName === 'zFuse'
+    })
+    if (!gameSource) {
+      console.error(`targetSource is invalid`);
+      return
+    }
+    console.log('------22222 gameSource: ',gameSource)
+    engine.current?.startScreenCaptureByWindowId(
+      gameSource.sourceId,
+      { width: 0, height: 0, x: 0, y: 0 },
+      {
+        dimensions: { width: appConfig.gameScreenX, height: appConfig.gameScreenY },
+        bitrate: appConfig.gameBitrate,
+        frameRate: appConfig.gameScreenFPS,
+        captureMouseCursor: false,
+        windowFocus: false,
+        excludeWindowList: [],
+        excludeWindowCount: 0,
+      }
+    )
+  }
+
+  const stopScreenCapture = () => {
+    console.log('-----stopScreenCapture')
+    engine.current?.stopScreenCapture()
+  }
+
+  const updateVideoSize = (parentDom) => {
+    const divDom = parentDom.querySelector('div')
+    if (divDom) {
+      divDom.style.position = 'relative'
+    }
+    console.log('----updateVideoSize divDom: ',divDom)
+    const canvasDom = parentDom.querySelector('canvas')
+    console.log('----updateVideoSize canvasDom: ',canvasDom)
+    if (canvasDom) {
+      canvasDom.style.position = 'absolute';
+      canvasDom.style.top = 0
+      canvasDom.style.left = 0
+      canvasDom.style.right = 0
+      canvasDom.style.bottom = 0
+      canvasDom.style.width = '100%';
+      canvasDom.style.height = '100%';
+    }
+  }
 
   const handleOnInputChange = debounce((e) => {
     console.log('----event: ',e.target.value)
@@ -73,7 +191,17 @@ const GameLivingPage : React.FC = () => {
   },500)
 
   const handleStartClick = (e) => {
-    console.log('-----handleStartClick: ',e)
+    console.log('-----handleStartClick isGameShow: ',isGameShow)
+    if (!isGameShow) {
+      startScreenCapture()
+      updateGameScreenVideo() 
+      setTimeout(() => {
+        //updateVideoSize(gameRef.current)
+      },2500)
+    } else {
+      stopScreenCapture()
+    }
+    setIsGameShow(!isGameShow)
   }
 
   const handleOnOptBtnClick = (e) => {
@@ -107,7 +235,7 @@ const GameLivingPage : React.FC = () => {
               return (
                 <div key={`${key}-${index}`} style={{display:'flex',flex:'1', justifyContent:'space-between',marginTop:'6px',paddingLeft:'4px'}}>
                   <label>{key}</label>
-                  <input style={{width: '60%', marginRight:'4px'}} id={key} defaultValue={appConfig[key]} onChange={handleOnInputChange}/>
+                  <input disabled={!globalDisable} style={{width: '60%', marginRight:'4px'}} id={key} defaultValue={appConfig[key]} onChange={handleOnInputChange}/>
                 </div>
               )
             })
@@ -122,7 +250,7 @@ const GameLivingPage : React.FC = () => {
         <p style={{fontSize: '16px',paddingLeft:'4px'}}>玩法</p>
         <div style={{display:'flex',justifyContent:'space-between'}}>
           <span style={{marginLeft: '12px'}}>萌萌宠之战</span>
-          <button style={{width: '35%',marginRight:'4px',backgroundColor:'green'}} onClick={handleStartClick}>开始</button>
+          <button style={{width: '35%',marginRight:'4px',backgroundColor:'green'}} onClick={handleStartClick}>{isGameShow ? '结束' : '开始'}</button>
         </div>
       </>
     )
@@ -166,12 +294,13 @@ const GameLivingPage : React.FC = () => {
   }
 
   const renderScreenMain = () => {
+    console.log('-----renderScreenMain globalDisable: ',globalDisable)
     return (
       <>
-        <div className={styles.game} ref={gameRef}>游戏预览</div>
+        <div className={styles.game} ref={gameRef}>{isGameShow ? '':'游戏预览'}</div>
         <div className={styles.person}>
-          <div className={styles.meta} ref={metaRef}>房间主播预览</div>
-          <div className={styles.meta} ref={visterRef}>房间主播预览</div>
+          <div className={styles.meta} ref={metaRef}>{globalDisable ? '': '房间主播预览'}</div>
+          {!globalDisable&&(<div className={styles.meta} ref={visterRef}>房间主播预览</div>)}
         </div>
         <div className={styles.livingWapper}>
           <button onClick={handleStartLiving}>开始直播</button>
@@ -186,9 +315,9 @@ const GameLivingPage : React.FC = () => {
         <p>在看观众</p>
         <ul className={styles.personList}>
           {
-            personList.map((person) => {
+            personList.map((person,index) => {
               return (
-                <li>{person.userName}</li>
+                <li key={`${person.userName}-${index}`}>{person.userName}</li>
               )
             })
           }
@@ -203,9 +332,9 @@ const GameLivingPage : React.FC = () => {
         <p className={styles.title}>互动消息</p>
         <ul className={styles.listContainer}>
           {
-            msgList.map((item) => {
+            msgList.map((item,index) => {
               return (
-                <li>{`${item.userName} ${item.msg}`}</li>
+                <li key={`${item.userName}-${index}`}>{`${item.userName} ${item.msg}`}</li>
               )
             })
           }
