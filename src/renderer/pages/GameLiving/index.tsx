@@ -5,7 +5,11 @@ import {
   VideoSourceType,
   VideoMirrorModeType,
   RenderModeType,
-  ScreenCaptureSourceType
+  ScreenCaptureSourceType,
+  ClientRoleType,
+  RtcConnection,
+  RtcStats,
+  UserOfflineReasonType
 } from 'agora-electron-sdk'
 import styles from './index.scss'
 import { debounce } from '../../utils'
@@ -67,16 +71,32 @@ const personMock = [
   {userName:'观众dddd'},
   {userName:'观众etststt'},
 ]
+interface ScreenCaptureParameters {
+  width?: number,
+  height?: number,
+  bitrate?: number,
+  frameRate?: number
+}
 
 const GameLivingPage : React.FC = () => {
   const [appConfig, setAppConfig] = useState(defaultConfig)
   const [personList, setPersonList] = useState(personMock)
-  const [msgList, setMsgList] = useState(msgMock)
-  const [globalDisable, setGlobalDisable] = useState(false)
+  const [msgList, setMsgList] = useState<any>([])
+  const [globalDisable, setGlobalDisable] = useState(true)
   const [isGameShow, setIsGameShow] = useState(false)
+  const [startLiving, setStartLiving] = useState(false)
+  const [awardInfo, setAwardInfo] = useState({
+    dianzan: 5,
+    rose: 1,
+    bomb: 1,
+    rocket: 1
+  })
+  const [inputMsg, setInputMsg] = useState<string>('')
   const gameRef = useRef(null)
   const metaRef = useRef(null)
   const visterRef = useRef(null)
+  const msgListRef = useRef<any>(null)
+  //const inputMsg = useRef<string>('')
   const engine = useRef(createAgoraRtcEngine())
 
   useEffect(() => {
@@ -88,7 +108,11 @@ const GameLivingPage : React.FC = () => {
       console.log('unmonut component')
       engine.current.release()
     }
-  }, [appConfig.appId, appConfig.userId])
+  }, [appConfig.appId, appConfig.userId, appConfig.channelName])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [msgList])
 
   const initEngine = () => {
     engine.current.initialize({
@@ -98,6 +122,7 @@ const GameLivingPage : React.FC = () => {
     })
     engine.current.enableVideo()
     engine.current.startPreview()
+    registerChannelEvent()
     try {
       engine.current.destroyRendererByView(metaRef.current);
     } catch (e) {
@@ -112,9 +137,9 @@ const GameLivingPage : React.FC = () => {
     });
     console.log('----ret: ',ret)
     if (ret === 0) {
-      setGlobalDisable(true)
-    } else {
       setGlobalDisable(false)
+    } else {
+      setGlobalDisable(true)
     }
   }
 
@@ -161,9 +186,80 @@ const GameLivingPage : React.FC = () => {
     )
   }
 
+  const updateGameCaptureParameters = (parms: ScreenCaptureParameters) => {
+    console.log('------updateGameCaptureParameters parms: ',parms)
+    let ret = engine.current.updateScreenCaptureParameters({
+      dimensions: { width: parms.width, height: parms.height },
+      bitrate: parms.bitrate,
+      frameRate: parms.frameRate,
+      captureMouseCursor: false
+    })
+    console.log('---update ret: ',ret)
+  }
+
   const stopScreenCapture = () => {
     console.log('-----stopScreenCapture')
     engine.current?.stopScreenCapture()
+  }
+
+  const registerChannelEvent = () => {
+    engine.current.addListener(
+      'onJoinChannelSuccess',
+      (connection: RtcConnection, elapsed: number) => {
+        console.log('onJoinChannelSuccess','connection',connection,'elapsed',elapsed)
+        setStartLiving(true);
+      }
+    )
+    engine.current.addListener(
+      'onLeaveChannel',
+      (connection: RtcConnection, stats: RtcStats) => {
+        console.log('onLeaveChannel','connection',connection,'stats',stats)
+        setStartLiving(false);
+      }
+    )
+    engine.current.addListener(
+      'onUserJoined',
+      (connection: RtcConnection, remoteUid: number, elapsed: number) => {
+        console.log('onUserJoined','connection',connection,'remoteUid',remoteUid,'elapsed', elapsed)
+      }
+    )
+    engine.current.addListener(
+      'onUserOffline',
+      (connection: RtcConnection, remoteUid: number, reason: UserOfflineReasonType) => {
+        console.log('onUserOffline','connection',connection,'remoteUid',remoteUid,'reason', reason)
+      }
+    )
+  }
+
+  const joinChannel = () => {
+    if (!appConfig.channelName) {
+      console.error('channelId is invalid');
+      return
+    }
+    if (appConfig.userId < 0) {
+      console.error('uid is invalid');
+      return
+    }
+    let token = ''
+    console.log('------join channel')
+    // start joining channel
+    // 1. Users can only see each other after they join the
+    // same channel successfully using the same app id.
+    // 2. If app certificate is turned on at dashboard, token is needed
+    // when joining channel. The channel name and uid used to calculate
+    // the token has to match the ones used for channel join
+    engine.current.joinChannel(token, appConfig.channelName, appConfig.userId, {
+      // Make myself as the broadcaster to send stream to remote
+      clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+      publishMicrophoneTrack: false,
+      publishCameraTrack: true,
+      publishScreenTrack: true,
+    })
+  }
+
+  const leaveChannel = () => {
+    console.log('------leaveChannel')
+    engine.current.leaveChannel()
   }
 
   const updateVideoSize = (parentDom) => {
@@ -188,9 +284,45 @@ const GameLivingPage : React.FC = () => {
   const handleOnInputChange = debounce((e) => {
     console.log('----event: ',e.target.value)
     console.log('----event id: ',e.target.id)
-  },500)
+    switch (e.target.id) {
+      case 'gameScreenX':
+      case 'gameScreenY':
+      case 'gameScreenFPS':
+      case 'gameBitrate':
+        {
+          let newAppConfig = {
+            ...appConfig,
+            [e.target.id]: +e.target.value
+          }
+          console.log('----newAppConfig: ',newAppConfig)
+          if (isGameShow) {
+            let gameCapture:ScreenCaptureParameters = {
+              width: newAppConfig.gameScreenX,
+              height: newAppConfig.gameScreenY,
+              bitrate: newAppConfig.gameBitrate,
+              frameRate: newAppConfig.gameScreenFPS
+            }
+            updateGameCaptureParameters(gameCapture)
+          }
+          setAppConfig(newAppConfig)
+        }
+        break
+      case 'appId':
+      case 'userName':
+      case 'channelName':
+      case 'userId':
+        {
+          let newAppConfig = {
+            ...appConfig,
+            [e.target.id]: e.target.id === 'userId'? (+e.target.value) : e.target.value
+          }
+          setAppConfig(newAppConfig)
+        }
+        break
+    }
+  },100)
 
-  const handleStartClick = (e) => {
+  const handleMethodClick = (e) => {
     console.log('-----handleStartClick isGameShow: ',isGameShow)
     if (!isGameShow) {
       startScreenCapture()
@@ -203,26 +335,85 @@ const GameLivingPage : React.FC = () => {
     }
     setIsGameShow(!isGameShow)
   }
+  
+  const scrollToBottom = () => {
+    if (msgListRef.current) {
+      msgListRef.current.scrollTop = msgListRef.current.scrollHeight;
+    }
+  }
 
   const handleOnOptBtnClick = (e) => {
     console.log('-----handleOnOptBtnClick e: ',e.target.id)
+    let msg = ''
+    switch (e.target.id) {
+      case 'dianzanBtn': {
+        msg = `${awardInfo.dianzan}个点赞`
+        break
+      }
+      case 'roseBtn': {
+        msg = `${awardInfo.rose}个玫瑰10币`
+        break
+      }
+      case 'bombBtn': {
+        msg = `${awardInfo.bomb}个炸弹50币`
+        break
+      }
+      case 'rocketBtn': {
+        msg = `${awardInfo.rocket}个火箭1000币`
+        break
+      }
+    }
+    let newMsgList = [...msgList,{
+      userName: appConfig.userName,
+      msg
+    }]
+    setMsgList(newMsgList)
+    setAwardInfo({
+      dianzan: 5,
+      rose: 1,
+      bomb: 1,
+      rocket: 1
+    })
+    //scrollToBottom()
   }
 
-  const handleOptmsgInputChange = debounce((e) => {
-    console.log('----event: ',e.target.value)
-    console.log('-----handleOptmsgInputChange e: ',e.target.id)
-  },500)
+  const handleOptmsgInputChange = debounce((id, value) => {
+    console.log('----event: ',value)
+    console.log('-----handleOptmsgInputChange e: ',id)
+    let newAward = {
+      ...awardInfo,
+      [id]: +value
+    }
+    console.log('-----newAward:',newAward)
+    setAwardInfo(newAward)
+  },100)
 
-  const handleStartLiving = (e) => {
-    console.log('-----handleStartLiving e: ',e)
+  const handleLivingClick = (e) => {
+    console.log('-----handleStartLiving startLiving: ',startLiving)
+    if (!startLiving) {
+      joinChannel()
+    } else {
+      leaveChannel()
+    }
   }
 
   const sendMsg = (e) => {
-    console.log('-----handleStartLiving e: ',e)
+    console.log('-----sendMsg: ',inputMsg)
+    if (inputMsg.trim() !== '') {
+      console.log('----sendMsg: ',inputMsg)
+      let newMsgList = [...msgList,{
+        userName: appConfig.userName,
+        msg: inputMsg
+      }]
+      setMsgList(newMsgList)
+      scrollToBottom()
+      setInputMsg('')
+    }
   }
 
   const handleInputMsgChange = (e) => {
-    console.log('-----handleStartLiving e: ',e.target.value)
+    setInputMsg(e.target.value)
+    //inputMsg.current = e.target.value
   }
 
   const renderConfig = () => {
@@ -235,7 +426,7 @@ const GameLivingPage : React.FC = () => {
               return (
                 <div key={`${key}-${index}`} style={{display:'flex',flex:'1', justifyContent:'space-between',marginTop:'6px',paddingLeft:'4px'}}>
                   <label>{key}</label>
-                  <input disabled={!globalDisable} style={{width: '60%', marginRight:'4px'}} id={key} defaultValue={appConfig[key]} onChange={handleOnInputChange}/>
+                  <input disabled={globalDisable} style={{width: '60%', marginRight:'4px'}} id={key} defaultValue={appConfig[key]} onChange={handleOnInputChange}/>
                 </div>
               )
             })
@@ -250,7 +441,7 @@ const GameLivingPage : React.FC = () => {
         <p style={{fontSize: '16px',paddingLeft:'4px'}}>玩法</p>
         <div style={{display:'flex',justifyContent:'space-between'}}>
           <span style={{marginLeft: '12px'}}>萌萌宠之战</span>
-          <button style={{width: '35%',marginRight:'4px',backgroundColor:'green'}} onClick={handleStartClick}>{isGameShow ? '结束' : '开始'}</button>
+          <button style={{width: '35%',marginRight:'4px',backgroundColor:'green'}} onClick={handleMethodClick}>{isGameShow ? '结束' : '开始'}</button>
         </div>
       </>
     )
@@ -264,29 +455,29 @@ const GameLivingPage : React.FC = () => {
             <div className={styles.btnWapper}>
               <button id='dianzanBtn' onClick={handleOnOptBtnClick}>点赞</button>
               <span>x</span>
-              <input id='dianzan' onChange={handleOptmsgInputChange} defaultValue='5' />
+              <input id='dianzan' onChange={(e) => handleOptmsgInputChange(e.target.id, e.target.value)} value={awardInfo.dianzan} />
             </div>
           </div>
           <div style={{display: 'flex', flexDirection:'column'}}>
             <div className={styles.btnWapper}>
               <button id='roseBtn' onClick={handleOnOptBtnClick}>玫瑰10币</button>
               <span>x</span>
-              <input id='rose' onChange={handleOptmsgInputChange} defaultValue='1' />
+              <input id='rose' onChange={(e) => handleOptmsgInputChange(e.target.id, e.target.value)} value={awardInfo.rose} />
             </div>
             <div className={styles.btnWapper}>
               <button id='bombBtn' onClick={handleOnOptBtnClick}>炸弹50币</button>
               <span>x</span>
-              <input id='bomb' onChange={handleOptmsgInputChange} defaultValue='1' />
+              <input id='bomb' onChange={(e) => handleOptmsgInputChange(e.target.id, e.target.value)} value={awardInfo.bomb} />
             </div>
             <div className={styles.btnWapper}>
               <button id='rocketBtn' onClick={handleOnOptBtnClick}>火箭1000币</button>
               <span>x</span>
-              <input id='rocket' onChange={handleOptmsgInputChange} defaultValue='1' />
+              <input id='rocket' onChange={(e) => handleOptmsgInputChange(e.target.id, e.target.value)} value={awardInfo.rocket} />
             </div>
           </div>
         </div>
         <div className={styles.msgSend}>
-          <input maxLength={200} onChange={handleInputMsgChange} placeholder='说点什么...' />
+          <input type="text" maxLength={200} onChange={handleInputMsgChange} placeholder='说点什么...' value={inputMsg}/>
           <button onClick={sendMsg}>发送</button>
         </div>
       </>
@@ -299,11 +490,11 @@ const GameLivingPage : React.FC = () => {
       <>
         <div className={styles.game} ref={gameRef}>{isGameShow ? '':'游戏预览'}</div>
         <div className={styles.person}>
-          <div className={styles.meta} ref={metaRef}>{globalDisable ? '': '房间主播预览'}</div>
-          {!globalDisable&&(<div className={styles.meta} ref={visterRef}>房间主播预览</div>)}
+          <div className={styles.meta} ref={metaRef}>{!globalDisable ? '': '房间主播预览'}</div>
+          {globalDisable&&(<div className={styles.meta} ref={visterRef}>房间主播预览</div>)}
         </div>
         <div className={styles.livingWapper}>
-          <button onClick={handleStartLiving}>开始直播</button>
+          <button disabled={!isGameShow} onClick={handleLivingClick}>{startLiving? '结束直播':'开始直播'}</button>
         </div>
       </>
     )
@@ -330,7 +521,7 @@ const GameLivingPage : React.FC = () => {
     return (
       <>
         <p className={styles.title}>互动消息</p>
-        <ul className={styles.listContainer}>
+        <ul className={styles.listContainer} ref={msgListRef}>
           {
             msgList.map((item,index) => {
               return (
