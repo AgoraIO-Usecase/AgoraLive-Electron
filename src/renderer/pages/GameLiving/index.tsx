@@ -281,10 +281,10 @@ const GameLivingPage : React.FC = () => {
     }
   }
 
-  const handleOnInputChange = debounce((e) => {
-    console.log('----event: ',e.target.value)
-    console.log('----event id: ',e.target.id)
-    switch (e.target.id) {
+  const handleOnInputChange = debounce((id, value) => {
+    console.log('----event: ',value)
+    console.log('----event id: ',id)
+    switch (id) {
       case 'gameScreenX':
       case 'gameScreenY':
       case 'gameScreenFPS':
@@ -292,7 +292,7 @@ const GameLivingPage : React.FC = () => {
         {
           let newAppConfig = {
             ...appConfig,
-            [e.target.id]: +e.target.value
+            [id]: +value
           }
           console.log('----newAppConfig: ',newAppConfig)
           if (isGameShow) {
@@ -314,7 +314,7 @@ const GameLivingPage : React.FC = () => {
         {
           let newAppConfig = {
             ...appConfig,
-            [e.target.id]: e.target.id === 'userId'? (+e.target.value) : e.target.value
+            [id]: id === 'userId'? (+value) : value
           }
           setAppConfig(newAppConfig)
         }
@@ -426,7 +426,7 @@ const GameLivingPage : React.FC = () => {
               return (
                 <div key={`${key}-${index}`} style={{display:'flex',flex:'1', justifyContent:'space-between',marginTop:'6px',paddingLeft:'4px'}}>
                   <label>{key}</label>
-                  <input disabled={globalDisable} style={{width: '60%', marginRight:'4px'}} id={key} defaultValue={appConfig[key]} onChange={handleOnInputChange}/>
+                  <input disabled={globalDisable} style={{width: '60%', marginRight:'4px'}} id={key} value={appConfig[key]} onChange={(e) => handleOnInputChange(e.target.id, e.target.value)}/>
                 </div>
               )
             })
