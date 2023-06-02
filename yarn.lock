@@ -1708,6 +1708,11 @@
     "yuv-buffer" "1.0.0"
     "yuv-canvas" "1.2.6"
 
+"agora-rtm-sdk@^1.6.0-205":
+  "integrity" "sha512-8GqeYKQrBLin8ZgpEDY29NB6kL5mE8Kn+fslm8Du8QiHKDRWcqr1rRCNcPIysLosWP2v0WVPjAsmKqNcaED+gg=="
+  "resolved" "https://registry.npmmirror.com/agora-rtm-sdk/-/agora-rtm-sdk-1.6.0-205.tgz"
+  "version" "1.6.0-205"
+
 "ajv-errors@^1.0.0":
   "integrity" "sha512-DCRfO/4nQ+89p/RK43i8Ezd41EqdGIU4ld7nGF8OQ14oc/we5rEntLCUa7+jrn3nn83BosfwZA0wb4pon2o8iQ=="
   "resolved" "https://registry.npmmirror.com/ajv-errors/-/ajv-errors-1.0.1.tgz"
