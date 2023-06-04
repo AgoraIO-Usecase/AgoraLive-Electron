@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import {
   createAgoraRtcEngine,
   ChannelProfileType,
@@ -14,6 +14,7 @@ import {
 import styles from './index.scss'
 import { debounce } from '../../utils'
 import RtmClient from '../../utils/rtm-client'
+import { checkAppInstall, startApp, checkAppInfoEvent, startAppInfoEvent} from '../../utils/ipcRenderEvent'
 import Config from '../../config/agora.config'
 const defaultConfig= {
   appId: '0411799bd126418c9ea73cb37f2c40b4',
@@ -45,6 +46,8 @@ const GameLivingPage : React.FC = () => {
   const [startLiving, setStartLiving] = useState(false)
   const [awardInfo, setAwardInfo] = useState({ dianzan: 5,rose: 1,bomb: 1,rocket: 1 })
   const [inputMsg, setInputMsg] = useState<string>('')
+  const [isAppExist, setIsAppExist] = useState(false)
+  const isAppStart = useRef(false)
   const gameRef = useRef(null)
   const metaRef = useRef(null)
   const visterRef = useRef(null)
@@ -52,13 +55,18 @@ const GameLivingPage : React.FC = () => {
   const visitor = useRef(undefined)
   const engine = useRef(createAgoraRtcEngine())
   const RTM = useRef(new RtmClient())
+  const appName = 'QQ'
 
   useEffect(() => {
     initEngine()
     initRtm()
+    registerIpcEvent()
+    checkAppInstall(appName)
+    /*
     setTimeout(() => {
       updateVideoSize(metaRef.current)
-    },2500)   
+    },2500)
+    */   
     return () => {
       console.log('unmonut component')
       engine.current.release()
@@ -120,12 +128,54 @@ const GameLivingPage : React.FC = () => {
     RTM.current.on('ChannelMessage', async ({ channelName, args }) => {
       const [message, memberId] = args
       console.log('channel: ', channelName, ', messsage: ', message.text, ', memberId: ', memberId)
+      console.log('------old msgList:',msgList)
       let newMsgList = [...msgList,{
-        userName: memberId,
+        userName: +memberId,
         msg: message.text
       }]
-      setMsgList(newMsgList)
+      console.log('------new msgList:',newMsgList)
+      setMsgList((prevMsgList) => {
+        return [
+          ...prevMsgList,
+          {
+            userName: +memberId,
+            msg: message.text
+          }
+        ]
+      })
     })
+  }
+
+  const registerIpcEvent = () => {
+    checkAppInfoEvent(checkAppInstallCallBack)
+    startAppInfoEvent(startAppCallBack)
+  }
+
+  const checkAppInstallCallBack = (eventInfo) => {
+    console.log('-----checkAppInstallCallBack: ', eventInfo)
+    if (eventInfo === true) {
+      setIsAppExist(true)
+    } else {
+      setIsAppExist(false)
+    }
+  }
+
+  const startAppCallBack = (eventInfo) => {
+    console.log('-----startAppCallBack: ', eventInfo)
+    if (eventInfo === 'success') {
+      isAppStart.current = true
+      if (startScreenCapture()) {
+        console.log('----startAppCallBack')
+        updateGameScreenVideo() 
+      } else {
+        setTimeout(() => {
+          startScreenCapture()
+          updateGameScreenVideo() 
+        }, 2000)
+      }
+    } else {
+      isAppStart.current = false
+    }
   }
 
   const updateRemoteScreenVideo = () => {
@@ -176,12 +226,12 @@ const GameLivingPage : React.FC = () => {
     let sources = engine.current?.getScreenCaptureSources({width: 1920, height: 1080},{width: 64, height: 64},true)
     console.log('-----startScreenCapture sources: ',sources)
     let gameSource = sources.find((item) => {
-      //return item.sourceName === 'QQ音乐'
-      return item.sourceName === 'zFuse'
+      //return item.sourceName === 'zFuse'
+      return item.sourceName === 'QQ'
     })
     if (!gameSource) {
       console.error(`targetSource is invalid`);
-      return
+      return false
     }
     console.log('------22222 gameSource: ',gameSource)
     engine.current?.startScreenCaptureByWindowId(
@@ -197,6 +247,7 @@ const GameLivingPage : React.FC = () => {
         excludeWindowCount: 0,
       }
     )
+    return true
   }
 
   const updateGameCaptureParameters = (parms: ScreenCaptureParameters) => {
@@ -220,14 +271,14 @@ const GameLivingPage : React.FC = () => {
       'onJoinChannelSuccess',
       (connection: RtcConnection, elapsed: number) => {
         console.log('onJoinChannelSuccess','connection',connection,'elapsed',elapsed)
-        setStartLiving(true);
+        setStartLiving(true)
       }
     )
     engine.current.addListener(
       'onLeaveChannel',
       (connection: RtcConnection, stats: RtcStats) => {
         console.log('onLeaveChannel','connection',connection,'stats',stats)
-        setStartLiving(false);
+        setStartLiving(false)
         setPersonList([])
         visitor.current = undefined
       }
@@ -385,15 +436,20 @@ const GameLivingPage : React.FC = () => {
   const handleMethodClick = (e) => {
     console.log('-----handleStartClick isGameShow: ',isGameShow)
     if (!isGameShow) {
-      startScreenCapture()
-      updateGameScreenVideo() 
-      setTimeout(() => {
-        //updateVideoSize(gameRef.current)
-      },2500)
+      if (!isAppStart.current) {
+        startApp('QQ')
+      } else {
+        let isCapture = startScreenCapture()
+        if (isCapture) {
+          updateGameScreenVideo() 
+        } else {
+          startApp('QQ')
+        }
+      }
     } else {
       stopScreenCapture()
     }
-    setIsGameShow(!isGameShow)
+    setIsGameShow((preState) => !preState)
   }
   
   const scrollToBottom = () => {
@@ -455,8 +511,8 @@ const GameLivingPage : React.FC = () => {
       joinChannel()
       joinRtmChannel()
     } else {
-      leaveChannel()
       leaveRtmChannel()
+      leaveChannel()
     }
   }
 
@@ -508,7 +564,7 @@ const GameLivingPage : React.FC = () => {
         <p style={{fontSize: '16px',paddingLeft:'4px'}}>玩法</p>
         <div style={{display:'flex',justifyContent:'space-between'}}>
           <span style={{marginLeft: '12px'}}>萌萌宠之战</span>
-          <button style={{width: '35%',marginRight:'4px'}} onClick={handleMethodClick}>{isGameShow ? '结束' : '开始'}</button>
+          <button disabled={!isAppExist} style={{width: '35%',marginRight:'4px'}} onClick={handleMethodClick}>{isGameShow ? '结束' : '开始'}</button>
         </div>
       </>
     )

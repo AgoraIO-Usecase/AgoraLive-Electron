@@ -1,6 +1,8 @@
-import { app, BrowserWindow, systemPreferences } from 'electron';
+import { app, BrowserWindow, systemPreferences, ipcMain } from 'electron'
+import { exec } from 'child_process'
 import path from 'path';
 import { format as formatUrl } from 'url';
+import { checkAppExists } from './util'
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 app.allowRendererProcessReuse = false;
@@ -8,6 +10,31 @@ app.allowRendererProcessReuse = false;
 if (systemPreferences.askForMediaAccess) {
   systemPreferences.askForMediaAccess('camera');
   systemPreferences.askForMediaAccess('microphone');
+}
+
+const registerIpcMainEvent = () => {
+  ipcMain.on('check-app-exist', (event, args) => {
+    console.log('----check-app-exist args: ',args)
+    let isExist = checkAppExists(args)
+    event.reply('check-app-exist-result', isExist)
+  })
+
+  ipcMain.on('start-app', (event, args) => {
+    console.log('----start-app args: ',args)
+    const appProcess = exec(`open -a ${args}`)
+    appProcess.on('error', (e) => {
+      console.log('error: ',e)
+      event.reply('start-app-result', 'failed');
+    })
+    appProcess.on('close', (code) => {
+      console.log('-----code: ',code)
+      if (code === 0) {
+        event.reply('start-app-result', 'success');
+      } else {
+        event.reply('start-app-result', 'failed');
+      }
+    })
+  })
 }
 
 // global reference to mainWindow (necessary to prevent window from being garbage collected)
@@ -73,4 +100,5 @@ app.on('activate', () => {
 // create main BrowserWindow when electron is ready
 app.on('ready', () => {
   mainWindow = createMainWindow();
+  registerIpcMainEvent()
 });
