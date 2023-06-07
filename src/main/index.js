@@ -1,5 +1,6 @@
 import { app, BrowserWindow, systemPreferences, ipcMain } from 'electron'
 import { exec } from 'child_process'
+import * as os from 'os'
 import path from 'path';
 import { format as formatUrl } from 'url';
 import { checkAppExists } from './util'
@@ -21,7 +22,12 @@ const registerIpcMainEvent = () => {
 
   ipcMain.on('start-app', (event, args) => {
     console.log('----start-app args: ',args)
-    const appProcess = exec(`open -a ${args}`)
+    var appProcess
+    if (os.platform() === 'win32') {
+      appProcess = exec(`start ${args}`)
+    } else if (os.platform() === 'darwin') {
+      appProcess = exec(`open -a ${args}`)
+    }
     appProcess.on('error', (e) => {
       console.log('error: ',e)
       event.reply('start-app-result', 'failed');

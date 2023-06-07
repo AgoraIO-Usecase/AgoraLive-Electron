@@ -12,10 +12,12 @@ import {
   UserOfflineReasonType
 } from 'agora-electron-sdk'
 import styles from './index.scss'
-import { debounce } from '../../utils'
+import { debounce, generateRandomNumber } from '../../utils'
 import RtmClient from '../../utils/rtm-client'
 import { checkAppInstall, startApp, checkAppInfoEvent, startAppInfoEvent} from '../../utils/ipcRenderEvent'
 import Config from '../../config/agora.config'
+import apiClient from '../../utils/request'
+
 const defaultConfig= {
   appId: '0411799bd126418c9ea73cb37f2c40b4',
   userId: 1101,
@@ -363,7 +365,7 @@ const GameLivingPage : React.FC = () => {
       // Make myself as the broadcaster to send stream to remote
       clientRoleType: ClientRoleType.ClientRoleBroadcaster,
       publishMicrophoneTrack: false,
-      publishCameraTrack: true,
+      publishCameraTrack: false,
       publishScreenTrack: true,
     })
   }
@@ -460,25 +462,67 @@ const GameLivingPage : React.FC = () => {
 
   const handleOnOptBtnClick = (e) => {
     console.log('-----handleOnOptBtnClick e: ',e.target.id)
-    let msg = ''
+    let msg = '', msg_type = '', giftid = '',giftvalue = 0
+    let messageId = generateRandomNumber()
+    let baseConfig = {
+      msgid: messageId,
+      userid: appConfig.userId,
+      avatarurl: 'test url',
+      nickname: appConfig.userName
+    }
+    let reqConfig
     switch (e.target.id) {
       case 'dianzanBtn': {
         msg = `${awardInfo.dianzan}个点赞`
+        reqConfig = {
+          ...baseConfig,
+          likenum: awardInfo.dianzan,
+          msg_type: 'live_like'
+        }
         break
       }
       case 'roseBtn': {
         msg = `${awardInfo.rose}个玫瑰10币`
+        reqConfig = {
+          ...baseConfig,
+          msg_type: 'live_gift',
+          giftnum: awardInfo.rose,
+          giftid: '1001',
+          giftvalue: 10
+        }
         break
       }
       case 'bombBtn': {
         msg = `${awardInfo.bomb}个炸弹50币`
+        reqConfig = {
+          ...baseConfig,
+          msg_type: 'live_gift',
+          giftnum: awardInfo.bomb,
+          giftid: '1002',
+          giftvalue: 50
+        }
         break
       }
       case 'rocketBtn': {
         msg = `${awardInfo.rocket}个火箭1000币`
+        reqConfig = {
+          ...baseConfig,
+          msg_type: 'live_gift',
+          giftnum: awardInfo.rocket,
+          giftid: '1003',
+          giftvalue: 1000
+        }
         break
       }
     }
+    console.log('----request config: ', reqConfig)
+    apiClient.post('live_data/living/message', reqConfig).then(response => {
+      console.log(response.data)
+    }).catch(err => {
+      console.error(err)
+    })
+
+    
     let newMsgList = [...msgList,{
       userName: appConfig.userName,
       msg
@@ -491,7 +535,6 @@ const GameLivingPage : React.FC = () => {
       bomb: 1,
       rocket: 1
     })
-    //scrollToBottom()
   }
 
   const handleOptmsgInputChange = debounce((id, value) => {
@@ -523,6 +566,20 @@ const GameLivingPage : React.FC = () => {
   const sendMsg = (e) => {
     if (inputMsg.trim() !== '') {
       console.log('----sendMsg: ',inputMsg)
+      let reqConfig = {
+        msgid: generateRandomNumber(),
+        userid: appConfig.userId,
+        avatarurl: 'test url',
+        nickname: appConfig.userName,
+        msg_type: 'live_comment',
+        content: inputMsg
+      }
+      console.log('----request config: ', reqConfig)
+      apiClient.post('live_data/living/message', reqConfig).then(response => {
+        console.log(response.data)
+      }).catch(err => {
+        console.error(err)
+      })
       sendRtmMessage(inputMsg)
       let newMsgList = [...msgList,{
         userName: appConfig.userName,
