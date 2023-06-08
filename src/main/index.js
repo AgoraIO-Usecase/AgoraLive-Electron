@@ -15,15 +15,18 @@ let mainWindow;
 
 function createMainWindow() {
   const window = new BrowserWindow({
-    width: 1024,
-    height: 768,
+    width: 1200,
+    height: 720,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
       webSecurity: false,
     },
+    //titleBarStyle: 'hidden',
+    //titleBarOverlay: false,
   });
-  window.setMinimumSize(800,600)
+  window.setMinimumSize(1200,720)
+  window.setBackgroundColor('#000000')
   window.webContents.openDevTools({
     mode: 'detach',
     activate: true,

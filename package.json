@@ -1,6 +1,7 @@
 {
-  "name": "Agora-Electron-Demo",
+  "name": "agora-live-assistant",
   "version": "1.0.0",
+  "description": "声网直播助手",
   "license": "MIT",
   "scripts": {
     "postinstall": "npm run rebuild",
@@ -17,8 +18,8 @@
   "build": {
     "asar": false,
     "buildDependenciesFromSource": true,
-    "productName": "Agora-Electron-Demo",
-    "appId": "agora.io.ElectronApiExample",
+    "productName": "声网直播助手",
+    "appId": "agora.io.LiveAssistant",
     "files": [
       "!*.log"
     ],

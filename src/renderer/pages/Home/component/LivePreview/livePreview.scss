@@ -1,0 +1,89 @@
+.livePreview {
+  height: 84%;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  .header {
+    position: relative;
+    height: 44px;
+    background: #2B2B2C;
+    border-bottom: 1px solid #0E0E0F;
+    border-radius: 6px;
+    .title {
+      line-height: 44px;
+      text-align: center;
+      color: #D8D8D9;
+    }
+    .layoutSetting {
+      position: absolute;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      width: 100px;
+      height: 34px;
+      right: 8px;
+      top: calc(50% - 34px/2);
+      background: #0E0E0F;
+      border-radius: 4px;
+      .button {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 30px;
+        margin: 0 2px;
+        border-radius: 2px;
+        color: #4C5159;
+
+      }
+      .active {
+        color: #C9CDD4;;
+        background: #2B2B2C;;
+      }
+      span {
+        pointer-events: none;
+      }
+    }
+  }
+  .previewRow {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    .area {
+      flex: 2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 48px 25px 0;
+      color: #4C5159;
+      border: 2px dashed #2B2B2C;
+    }
+    .options {
+      flex: 1;
+      display: flex;
+      border: 2px dashed #2B2B2C;
+    }
+  }
+  .previewColum {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    .area {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 24px 25px;
+      order: 2;
+      width: 44%;
+      color: #4C5159;
+      font-size: 14px;
+      border: 2px dashed #2B2B2C;
+    }
+    .options {
+      display: flex;
+      order: 1;
+      width: 28%;
+      border: 2px dashed #2B2B2C;
+    }
+  }
+}

@@ -1,0 +1,23 @@
+@mixin microphoneCommonStyles {
+  background: #2B2B2C;
+  border: 1px solid #0E0E0F;
+  border-radius: 6px;
+}
+
+.microphone {
+  display: flex;
+  flex-direction: column;
+  height: 40%;
+  margin: 0 2px;
+  .title {
+    height: 44px;
+    line-height: 44px;
+    text-align: center;
+    color: #D8D8D9;
+    @include microphoneCommonStyles;
+  }
+  .content {
+    flex: 1;
+    @include microphoneCommonStyles;
+  }
+}

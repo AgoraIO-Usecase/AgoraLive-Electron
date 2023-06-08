@@ -1,23 +1,10 @@
 @import "~antd/dist/antd.css";
 
-body {
-  position: relative;
-  color: black;
-  height: 100vh;
-
-  font-family: sans-serif;
-  overflow-y: hidden;
-  margin: 0;
-}
-
+html,
+body,
 #app {
-  display: flex;
-  flex: 1;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
   overflow: hidden;
-  max-height: 100%;
-}
-
-.ant-menu-submenu > .ant-menu {
-  max-height: 450px;
-  overflow: auto;
 }
