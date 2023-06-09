@@ -1,6 +1,89 @@
+@mixin sliderStyles {
+  .customerSlider {
+    flex: 1;
+    :global {
+      .ant-slider-handle {
+        width: 10px;
+        height: 10px;
+        margin-top: -2px;
+        background: #D8D8D9;
+        border-color: #D8D8D9;
+      }
+      .ant-slider-rail {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .ant-slider-track {
+        background: #0A84FF;
+      }
+    }
+  }
+}
+
 .setting {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   background: #2B2B2C;
   border-radius: 6px;
   margin-bottom: 10px;
+  .tool {
+    display: flex;
+    flex: 1;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 6px 0;
+    img {
+      width: 15px;
+      height: 15px;
+      margin-left: 24px;
+    }
+    .voice {
+      display: flex;
+      width: 120px;
+      align-items: center;
+      justify-content: space-around;
+      img {
+        width: 16px;
+        height: 12px;
+      }
+      @include sliderStyles;
+    }
+    .microphone {
+      display: flex;
+      width: 120px;
+      align-items: center;
+      img {
+        width: 12px;
+        height: 16px;
+      }
+      @include sliderStyles;
+    }
+  }
+  .divider {
+    border: 1px solid #0E0E0F;
+    margin: 0 24px;
+  }
+  .settingInput {
+    display: flex;
+    flex: 1;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 24px;
+    .inputArea {
+      display: flex;
+      gap: 12px;
+      .customInput {
+        background: #121212;
+        border: none;
+        color: #D8D8D9;
+        &::placeholder {
+          color: #4C5159;
+        }
+        &:focus {
+          border: 1px solid #0A84FF;
+        }
+      }
+    }
+  }
 }

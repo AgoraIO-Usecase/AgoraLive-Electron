@@ -2,8 +2,11 @@ declare namespace LivePreviewScssNamespace {
   export interface ILivePreviewScss {
     active: string;
     area: string;
+    arrow: string;
     button: string;
+    desc: string;
     header: string;
+    item: string;
     layoutSetting: string;
     livePreview: string;
     options: string;

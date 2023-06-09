@@ -1,6 +1,14 @@
 declare namespace SettingScssNamespace {
   export interface ISettingScss {
+    customInput: string;
+    customerSlider: string;
+    divider: string;
+    inputArea: string;
+    microphone: string;
     setting: string;
+    settingInput: string;
+    tool: string;
+    voice: string;
   }
 }
 

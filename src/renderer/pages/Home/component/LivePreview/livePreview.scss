@@ -61,7 +61,28 @@
     .options {
       flex: 1;
       display: flex;
-      border: 2px dashed #2B2B2C;
+      justify-content: center;
+      align-items: center;
+      .item {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-right: 12px;
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #86909C;
+        .desc {
+          margin-top: 6px;
+          .arrow {
+            padding-left: 4px;
+          }
+        }
+        span {
+          margin-top: 8px;
+        }
+      }
     }
   }
   .previewColum {
@@ -81,9 +102,31 @@
     }
     .options {
       display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       order: 1;
       width: 28%;
-      border: 2px dashed #2B2B2C;
+      .item {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 12px;
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #86909C;
+        .desc {
+          margin-top: 6px;
+          .arrow {
+            padding-left: 4px;
+          }
+        }
+        span {
+          margin-top: 8px;
+        }
+      }
     }
   }
 }
