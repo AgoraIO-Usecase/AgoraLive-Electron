@@ -9,7 +9,7 @@ const microDisableIcon = getResourcePath('microDisable.png')
 const settingIcon = getResourcePath('appSetting.png')
 
 const Setting: React.FC = () => {
-  console.log('------setting')
+  console.log('----render setting')
   return (
     <div className={styles.setting}>
       <div className={styles.tool}>

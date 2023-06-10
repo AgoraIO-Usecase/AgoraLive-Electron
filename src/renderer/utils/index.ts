@@ -1,5 +1,4 @@
 import path from 'path';
-import { AgoraDropdownItem } from '../components/ui';
 
 export const objToArray = (obj) =>
   Object.keys(obj).map((key) => ({ key, value: obj[key] }));
@@ -20,7 +19,7 @@ export const configEnumToOptions = (enumValue) => {
   }));
 };
 
-export const objectToItems = (object: any): AgoraDropdownItem[] => {
+export const objectToItems = (object: any): Object[] => {
   return Object.keys(object).map((value) => {
     return {
       label: value,
@@ -29,7 +28,7 @@ export const objectToItems = (object: any): AgoraDropdownItem[] => {
   });
 };
 
-export const arrayToItems = (array: any[]): AgoraDropdownItem[] => {
+export const arrayToItems = (array: any[]): Object[] => {
   return array.map((value) => {
     return {
       label: value.toString(),
@@ -38,7 +37,7 @@ export const arrayToItems = (array: any[]): AgoraDropdownItem[] => {
   });
 };
 
-export const enumToItems = (enumType: any): AgoraDropdownItem[] => {
+export const enumToItems = (enumType: any): Object[] => {
   const items = Object.values(enumType);
   const keys = items.filter((v) => typeof v === 'string') as string[];
   const values = items.filter((v) => typeof v === 'number') as number[];

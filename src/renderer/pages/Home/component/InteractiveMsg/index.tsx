@@ -3,6 +3,7 @@ import styles from './interactiveMsg.scss'
 
 
 const InteractiveMsg: React.FC = () => {
+  console.log('-----InteractiveMsg')
   return (
     <div className={styles.interactiveMsg}>
       <div className={styles.title}>互动消息</div>

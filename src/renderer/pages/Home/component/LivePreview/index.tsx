@@ -27,6 +27,7 @@ const optConfig = [
 ]
 
 const LivePreview: React.FC = () => {
+  console.log('----render LivePreview')
   const [isHorizontal, setIsHorizontal] = useState(true)
   const [isVertical, setIsVertical] = useState(false)
   const onLayoutClick = (e) => {
