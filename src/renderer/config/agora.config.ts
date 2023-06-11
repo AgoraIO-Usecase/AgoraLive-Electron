@@ -6,7 +6,7 @@ const config = {
   // Please refer to https://docs.agora.io/en/Agora%20Platform/token
   token: '',
   channelId: 'testdcg',
-  uid: 0,
+  uid: 1103,
   pluginPath: '',
   SDKLogPath: './logs/agorasdk.log',
 };

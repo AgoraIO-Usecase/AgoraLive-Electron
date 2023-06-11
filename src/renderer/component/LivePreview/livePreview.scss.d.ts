@@ -4,6 +4,7 @@ declare namespace LivePreviewScssNamespace {
     area: string;
     arrow: string;
     button: string;
+    cameraModal: string;
     desc: string;
     header: string;
     item: string;

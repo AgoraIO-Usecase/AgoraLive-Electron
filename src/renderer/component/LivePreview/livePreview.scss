@@ -49,12 +49,15 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 24px;
     .area {
-      flex: 2;
       display: flex;
       justify-content: center;
       align-items: center;
-      margin: 48px 25px 0;
+      width: 640px;
+      height: 360px;
       color: #4C5159;
       border: 2px dashed #2B2B2C;
     }
@@ -83,6 +86,12 @@
           margin-top: 8px;
         }
       }
+      .cameraModal {
+        background: #2B2B2C;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
     }
   }
   .previewColum {
@@ -95,7 +104,7 @@
       align-items: center;
       margin: 24px 25px;
       order: 2;
-      width: 44%;
+      width: 306px;
       color: #4C5159;
       font-size: 14px;
       border: 2px dashed #2B2B2C;
