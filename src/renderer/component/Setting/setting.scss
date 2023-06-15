@@ -18,7 +18,6 @@
     }
   }
 }
-
 .setting {
   flex: 1;
   display: flex;
@@ -37,6 +36,7 @@
       width: 15px;
       height: 15px;
       margin-left: 24px;
+      cursor: pointer;
     }
     .voice {
       display: flex;

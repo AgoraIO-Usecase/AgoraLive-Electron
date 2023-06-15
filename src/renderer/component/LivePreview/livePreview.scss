@@ -34,7 +34,7 @@
         margin: 0 2px;
         border-radius: 2px;
         color: #4C5159;
-
+        cursor: pointer;
       }
       .active {
         color: #C9CDD4;;
@@ -76,6 +76,7 @@
         height: 100px;
         background: rgba(255, 255, 255, 0.08);
         color: #86909C;
+        cursor: pointer;
         .desc {
           margin-top: 6px;
           .arrow {
@@ -126,6 +127,7 @@
         height: 100px;
         background: rgba(255, 255, 255, 0.08);
         color: #86909C;
+        cursor: pointer;
         .desc {
           margin-top: 6px;
           .arrow {

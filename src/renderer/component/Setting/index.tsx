@@ -6,12 +6,15 @@ import { ChannelProfileType,IRtcEngineEventHandler,ClientRoleType } from 'agora-
 import RtcEngineContext from "../../context/rtcEngineContext"
 import Config from '../../config/agora.config'
 import { IAppContext } from '../../context/rtcEngineContext'
+import VideoConfigModal from '../VideoConfigModal'
+import { message } from 'antd'
 
 const voiceIcon = getResourcePath('voice.png')
 const voiceDisableIcon = getResourcePath('voiceDisable.png')
 const microIcon = getResourcePath('microphone.png')
 const microDisableIcon = getResourcePath('microDisable.png')
 const settingIcon = getResourcePath('appSetting.png')
+const localUid = 0
 
 const Setting: React.FC = () => {
   console.log('----render setting')
@@ -22,9 +25,10 @@ const Setting: React.FC = () => {
   const [disableMicro,setDisableMicro] = useState(false)
   const [voiceVolume, setVoiceNum] = useState(50)
   const [microVolume, setMicroVolume] = useState(50)
+  const [isOpen, setIsOpen] = useState(false)
   const voiceVolumeRef = useRef(voiceVolume)
   const microVolumeRef = useRef(microVolume)
-  const { rtcEngine,appId,updateAppStatus, updateAppId} = useContext(RtcEngineContext) as IAppContext
+  const { rtcEngine,appId,isAppIdExist, updateAppStatus, updateAppId} = useContext(RtcEngineContext) as IAppContext
 
   const rtcEngineInit = () => {
     console.log('---rtcEngineInit appId: ',appId)
@@ -98,13 +102,21 @@ const Setting: React.FC = () => {
 
   const handleJoinChannel = ()=>{
     console.log('handleJoinChannel: ')
+    if (!isAppIdExist) {
+      message.info('请输入正确App ID')
+      return
+    }
+    if (channel.trim() === '') {
+      message.info('频道号不为空，请输入频道号')
+      return
+    }
     if(!isJoinChannel)
     {
       rtcEngine?.setChannelProfile(1)
     //  rtcEngine?.setClientRole(ClientRoleType.ClientRoleBroadcaster)
     //  rtcEngine?.registerMediaMetadataObserver();
       rtcEngine?.setAudioProfile(0, 3)
-      let ret = rtcEngine?.joinChannel("", channel, 0, {
+      let ret = rtcEngine?.joinChannel('', channel, localUid, {
         // Make myself as the broadcaster to send stream to remote
         clientRoleType: ClientRoleType.ClientRoleBroadcaster,
         publishMicrophoneTrack: true,
@@ -164,6 +176,18 @@ const Setting: React.FC = () => {
 
   }
 
+  const onVideoConfigChangeCb = () => {
+    setIsOpen(false)
+  }
+
+  const onSettingClick = () => {
+    if (!isAppIdExist) {
+      message.info('请输入正确App ID')
+      return
+    }
+    setIsOpen(true)
+  }
+
   useEffect(() => {
     rtcEngineInit()
     return () => {
@@ -176,7 +200,7 @@ const Setting: React.FC = () => {
   return (
     <div className={styles.setting}>
       <div className={styles.tool}>
-        <img src={`file://${settingIcon}`} alt="" />
+        <img onClick={onSettingClick} src={`file://${settingIcon}`} alt="" />
         <div className={styles.voice}>
           <img onClick={handleVoiceStatus} src={ disableVoice? `file://${voiceDisableIcon}`:`file://${voiceIcon}`} alt="" />
           <Slider
@@ -212,6 +236,7 @@ const Setting: React.FC = () => {
           <Button onClick={handleJoinChannel} type="primary"> {isJoinChannel ? '结束直播' : '立即开播'}</Button>
         </div>
       </div>
+      {isOpen&&(<VideoConfigModal isOpen={isOpen} onChange={onVideoConfigChangeCb}/>)}
     </div>
   )
 }

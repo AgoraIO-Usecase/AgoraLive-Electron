@@ -1,0 +1,12 @@
+.customerModal {
+  display: flex;
+  .content {
+    display: flex;
+    flex-direction: column;
+    .coder {
+      display: flex;
+      height: 100%;
+      align-items: center;
+    }
+  }
+}

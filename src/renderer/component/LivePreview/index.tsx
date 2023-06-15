@@ -92,7 +92,8 @@ const LivePreview: React.FC = () => {
         let capacities: IDeviceCapacity[] = []
         if (nums&&nums>0) {
           for (let i = 0; i < nums; i++) {
-            let cap = rtcEngine?.getVideoDeviceManager().getCapability(item.deviceId!, i);
+            let cap = rtcEngine?.getVideoDeviceManager().getCapability(item.deviceId!, i)
+            console.log('---------cap: ',cap)
             if (cap !== undefined) {
               capacities.push({
                 width: cap.width!,
