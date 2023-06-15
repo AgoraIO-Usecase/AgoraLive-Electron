@@ -46,6 +46,7 @@
       img {
         width: 16px;
         height: 12px;
+        cursor: pointer;
       }
       @include sliderStyles;
     }
@@ -56,6 +57,7 @@
       img {
         width: 12px;
         height: 16px;
+        cursor: pointer;
       }
       @include sliderStyles;
     }

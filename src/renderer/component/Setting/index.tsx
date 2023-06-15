@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react"
+import React, { useState, useContext, useEffect, useRef } from "react"
 import styles from './setting.scss'
 import { Divider, Slider, Input, Button } from 'antd'
 import { getResourcePath } from '../../utils/index'
@@ -18,6 +18,12 @@ const Setting: React.FC = () => {
   //const [appId, setAppId] = useState('')
   const [channel, setChannel] = useState('')
   const [isJoinChannel, setJoinState] = useState(false)
+  const [disableVoice,setDisableVoice] = useState(false)
+  const [disableMicro,setDisableMicro] = useState(false)
+  const [voiceVolume, setVoiceNum] = useState(50)
+  const [microVolume, setMicroVolume] = useState(50)
+  const voiceVolumeRef = useRef(voiceVolume)
+  const microVolumeRef = useRef(microVolume)
   const { rtcEngine,appId,updateAppStatus, updateAppId} = useContext(RtcEngineContext) as IAppContext
 
   const rtcEngineInit = () => {
@@ -54,17 +60,43 @@ const Setting: React.FC = () => {
     updateAppId(e.target.value)
   }
 
+  const handleVoiceStatus = (e) => {
+    if (!disableVoice) {
+      voiceVolumeRef.current = voiceVolume
+      setVoiceNum(0)
+      setDisableVoice(true)
+    } else {
+      setDisableVoice(false)
+      setVoiceNum(voiceVolumeRef.current)
+      rtcEngine?.adjustPlaybackSignalVolume(voiceVolumeRef.current);
+    }
+  }
+
+  const handleMicroStatus = (e) => {
+    if (!disableMicro) {
+      microVolumeRef.current = microVolume
+      setMicroVolume(0)
+      setDisableMicro(true)
+    } else {
+      setDisableMicro(false)
+      setMicroVolume(microVolumeRef.current)
+      rtcEngine?.adjustRecordingSignalVolume(microVolumeRef.current);
+    }
+  }
+
   const onVoiceAfterChange =(v)=>{
+    setVoiceNum(v)
     rtcEngine?.adjustPlaybackSignalVolume(v);
     console.log('onVoiceAfterChange: ',v)
   }
 
   const onMicAfterChange =(v)=>{
+    setMicroVolume(v)
     rtcEngine?.adjustRecordingSignalVolume(v);
     console.log('onMicAfterChange: ',v)
     }
 
-   const handleJoinChannel = ()=>{
+  const handleJoinChannel = ()=>{
     console.log('handleJoinChannel: ')
     if(!isJoinChannel)
     {
@@ -87,7 +119,7 @@ const Setting: React.FC = () => {
     else{
       rtcEngine?.leaveChannel()
     }
-   } 
+  } 
 
   const EventHandles:IRtcEngineEventHandler = {
     // 监听本地用户加入频道事件
@@ -130,7 +162,7 @@ const Setting: React.FC = () => {
       //console.log(`onLocalVideoStats: ${stats.sentBitrate},${stats.sentFrameRate}`)
     },
 
-};
+  }
 
   useEffect(() => {
     rtcEngineInit()
@@ -146,24 +178,26 @@ const Setting: React.FC = () => {
       <div className={styles.tool}>
         <img src={`file://${settingIcon}`} alt="" />
         <div className={styles.voice}>
-          <img src={`file://${voiceIcon}`} alt="" />
+          <img onClick={handleVoiceStatus} src={ disableVoice? `file://${voiceDisableIcon}`:`file://${voiceIcon}`} alt="" />
           <Slider
             className={styles.customerSlider} 
+            disabled={disableVoice}
             tooltip={{open: false}}
             min={0}
             max={100}
-            value={50}
+            value={voiceVolume}
             onAfterChange={onVoiceAfterChange}
           />
         </div>
         <div className={styles.microphone}>
-          <img src={`file://${microIcon}`} alt="" />
+          <img onClick={handleMicroStatus} src={disableMicro ? `file://${microDisableIcon}`:`file://${microIcon}`} alt="" />
           <Slider 
             className={styles.customerSlider}
+            disabled ={disableMicro}
             tooltip={{open: false}}
             min={0}
             max={100}
-            value={50}
+            value={microVolume}
             onAfterChange={onMicAfterChange}
           />
         </div>
