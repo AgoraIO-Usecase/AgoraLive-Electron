@@ -65,6 +65,10 @@ const Setting: React.FC = () => {
   }
 
   const handleVoiceStatus = (e) => {
+    if (!isAppIdExist) {
+      message.info('请输入正确App ID')
+      return
+    }
     if (!disableVoice) {
       voiceVolumeRef.current = voiceVolume
       setVoiceNum(0)
@@ -77,6 +81,10 @@ const Setting: React.FC = () => {
   }
 
   const handleMicroStatus = (e) => {
+    if (!isAppIdExist) {
+      message.info('请输入正确App ID')
+      return
+    }
     if (!disableMicro) {
       microVolumeRef.current = microVolume
       setMicroVolume(0)
@@ -89,12 +97,20 @@ const Setting: React.FC = () => {
   }
 
   const onVoiceAfterChange =(v)=>{
+    if (!isAppIdExist) {
+      message.info('请输入正确App ID')
+      return
+    }
     setVoiceNum(v)
     rtcEngine?.adjustPlaybackSignalVolume(v);
     console.log('onVoiceAfterChange: ',v)
   }
 
   const onMicAfterChange =(v)=>{
+    if (!isAppIdExist) {
+      message.info('请输入正确App ID')
+      return
+    }
     setMicroVolume(v)
     rtcEngine?.adjustRecordingSignalVolume(v);
     console.log('onMicAfterChange: ',v)
