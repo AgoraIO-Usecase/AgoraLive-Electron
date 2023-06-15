@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from "react"
 import styles from './setting.scss'
 import { Divider, Slider, Input, Button } from 'antd'
 import { getResourcePath } from '../../utils/index'
-import { ChannelProfileType } from 'agora-electron-sdk'
+import { ChannelProfileType,IRtcEngineEventHandler,ClientRoleType } from 'agora-electron-sdk'
 import RtcEngineContext from "../../context/rtcEngineContext"
 import Config from '../../config/agora.config'
 import { IAppContext } from '../../context/rtcEngineContext'
@@ -17,6 +17,7 @@ const Setting: React.FC = () => {
   console.log('----render setting')
   //const [appId, setAppId] = useState('')
   const [channel, setChannel] = useState('')
+  const [isJoinChannel, setJoinState] = useState(false)
   const { rtcEngine,appId,updateAppStatus, updateAppId} = useContext(RtcEngineContext) as IAppContext
 
   const rtcEngineInit = () => {
@@ -27,6 +28,7 @@ const Setting: React.FC = () => {
         logConfig: { filePath: Config.SDKLogPath },
         channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
       })
+      rtcEngine?.registerEventHandler(EventHandles)
       if (ret === 0) {
         updateAppStatus(true)
       } else {
@@ -52,12 +54,92 @@ const Setting: React.FC = () => {
     updateAppId(e.target.value)
   }
 
+  const onVoiceAfterChange =(v)=>{
+    rtcEngine?.adjustPlaybackSignalVolume(v);
+    console.log('onVoiceAfterChange: ',v)
+  }
+
+  const onMicAfterChange =(v)=>{
+    rtcEngine?.adjustRecordingSignalVolume(v);
+    console.log('onMicAfterChange: ',v)
+    }
+
+   const handleJoinChannel = ()=>{
+    console.log('handleJoinChannel: ')
+    if(!isJoinChannel)
+    {
+      rtcEngine?.setChannelProfile(1)
+    //  rtcEngine?.setClientRole(ClientRoleType.ClientRoleBroadcaster)
+    //  rtcEngine?.registerMediaMetadataObserver();
+      rtcEngine?.setAudioProfile(0, 3)
+      let ret = rtcEngine?.joinChannel("", channel, 0, {
+        // Make myself as the broadcaster to send stream to remote
+        clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+        publishMicrophoneTrack: true,
+        publishCameraTrack: false,
+        publishTrancodedVideoTrack: true,
+        autoSubscribeAudio: true,
+        autoSubscribeVideo: true,
+      });
+  
+      console.log(`--------join channel: ${ret},${channel}`)
+    }
+    else{
+      rtcEngine?.leaveChannel()
+    }
+   } 
+
+  const EventHandles:IRtcEngineEventHandler = {
+    // 监听本地用户加入频道事件
+    onJoinChannelSuccess: ({ channelId, localUid }, elapsed) => {
+        console.log('成功加入频道：' + channelId + '_' + localUid);
+        //isJoined = true;
+        // 本地用户加入频道后，设置本地视频窗口
+        // this.setState({
+        //   local: localUid,
+        //   isJoined: true
+        // });
+        setJoinState(true)
+    },
+
+    onLeaveChannel: ({ channelId, localUid }, stats) => {
+        console.log('成功退出频道：' + channelId);
+
+        setJoinState(false)
+    },
+
+    // 监听远端用户加入频道事件
+    onUserJoined: ({ channelId, localUid }, remoteUid, elapsed) => {
+        console.log('远端用户 ' + remoteUid + ' 已加入');
+
+    },
+
+    onUserOffline( uid,  reason) {
+     // this.handleAddRemote(channelId, remoteUid, false)
+      },
+
+    onAudioDeviceStateChanged: (deviceId, deviceType, deviceState) => {
+      console.log(`audio device changed:  ${deviceId} ${deviceType} ${deviceState}`)
+    },
+
+    onVideoDeviceStateChanged:(deviceId, deviceType, deviceState) => {
+      console.log(`video device changed: ${deviceId} ${deviceType} ${deviceState}`)
+    },
+
+    onLocalVideoStats:(connection, stats)=>{
+      //console.log(`onLocalVideoStats: ${stats.sentBitrate},${stats.sentFrameRate}`)
+    },
+
+};
+
   useEffect(() => {
     rtcEngineInit()
     return () => {
       rtcEngineRelease()
     }
   }, [appId])
+
+
 
   return (
     <div className={styles.setting}>
@@ -70,6 +152,8 @@ const Setting: React.FC = () => {
             tooltip={{open: false}}
             min={0}
             max={100}
+            value={50}
+            onAfterChange={onVoiceAfterChange}
           />
         </div>
         <div className={styles.microphone}>
@@ -79,6 +163,8 @@ const Setting: React.FC = () => {
             tooltip={{open: false}}
             min={0}
             max={100}
+            value={50}
+            onAfterChange={onMicAfterChange}
           />
         </div>
       </div>
@@ -89,7 +175,7 @@ const Setting: React.FC = () => {
          <Input className={styles.customInput} placeholder="频道号" value={channel} onChange={onChannelChange}/>
         </div>
         <div>
-          <Button type="primary">立即开播</Button>
+          <Button onClick={handleJoinChannel} type="primary"> {isJoinChannel ? '结束直播' : '立即开播'}</Button>
         </div>
       </div>
     </div>

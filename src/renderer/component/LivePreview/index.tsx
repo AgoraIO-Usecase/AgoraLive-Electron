@@ -10,7 +10,8 @@ import {
   CameraCapturerConfiguration,
   VideoSourceType,
   VideoMirrorModeType, 
-  RenderModeType  
+  RenderModeType,
+  TranscodingVideoStream  
 } from 'agora-electron-sdk'
 
 
@@ -50,16 +51,27 @@ interface IDevice {
   capacity: IDeviceCapacity[]
 }
 
+interface IScreenInfo {
+  isDisplay: boolean,
+  windowId: number,
+  width: number,
+  heigth: number,
+  title: string
+}
+
 const LivePreview: React.FC = () => {
   console.log('----render LivePreview')
   const [isHorizontal, setIsHorizontal] = useState(true)
   const [isVertical, setIsVertical] = useState(false)
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false)
+  const [isScreenModalOpen, setIsScreenModalOpen] = useState(false)
   const [devices, setDevices] = useState<IDevice[]>([])
-  const [sources, setSources] = useState([])
-  const [isStartLocalTranscoder, setStartLocalTranscoder] = useState(false)
+  const [sources, setSources] = useState<TranscodingVideoStream[]>([])
   const [deviceIndex, setDeviceIndex] = useState(0)
   const [capacityIndex, setCapacityIndex] = useState(0)
+  const [isPreview, setPreviewState] = useState(false)
+  const [isFirstCameraOpen, setFirstCameraState] = useState(false)
+  const [isFirstScreenOpen, setFirstScreenState] = useState(false)
   const videoRef = useRef(null)
   const {rtcEngine, isAppIdExist, appId} = useContext(RtcEngineContext) as IAppContext
 
@@ -125,21 +137,130 @@ const LivePreview: React.FC = () => {
       }
     }
     console.log('---configuration: ',configuration)
-    let ret = rtcEngine?.startCameraCapture(VideoSourceType.VideoSourceCameraPrimary, configuration)
+    let type = isFirstCameraOpen ? VideoSourceType.VideoSourceCameraSecondary : VideoSourceType.VideoSourceCameraPrimary
+    let ret = rtcEngine?.startCameraCapture(type, configuration)
     console.log('-----ret: ',ret)
     console.log('-----videoRef: ',videoRef.current)
-    try {
-      rtcEngine?.destroyRendererByView(videoRef.current);
-    } catch (e) {
-      console.error(e);
+    // try {
+    //   rtcEngine?.destroyRendererByView(videoRef.current);
+    // } catch (e) {
+    //   console.error(e);
+    // }
+
+    if(!isFirstCameraOpen)
+    {
+      setFirstCameraState(type==VideoSourceType.VideoSourceCameraPrimary);
     }
-    rtcEngine?.setupLocalVideo({
-      sourceType: VideoSourceType.VideoSourceCameraPrimary,
-      view: videoRef.current,
-      uid: Config.uid,
-      mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
-      renderMode: RenderModeType.RenderModeFit,
-    });
+      
+    // let newSrc:TranscodingVideoStream[] = []
+    // newSrc.push({
+    //   sourceType: type,
+    //   x: 0,
+    //   y: 0,
+    //   width: devices[selectIndex].capacity[selectCapIndex].width,
+    //   height: devices[selectIndex].capacity[selectCapIndex].height,
+    //   zOrder: 1,
+    //   alpha: 1
+    // })
+    // setSources(newSrc)
+    sources.push({
+      sourceType: type,
+      x: 0,
+      y: 0,
+      width: devices[selectIndex].capacity[selectCapIndex].width,
+      height: devices[selectIndex].capacity[selectCapIndex].height,
+      zOrder: 1,
+      alpha: 1
+    })
+
+    handlePreview();
+  }
+
+  const handleAddScreen = (data) =>{
+
+    let type = isFirstScreenOpen ? VideoSourceType.VideoSourceScreenSecondary : VideoSourceType.VideoSourceScreenPrimary
+    if(data.isDisplay)
+    {
+      let config = {
+        isCaptureWindow: false,
+        displayId: data.windowId,
+        ScreenCaptureParameters:{frameRate:15}
+      }
+      
+      let ret = rtcEngine?.startScreenCaptureBySourceType(type, config);
+    }
+    else{
+      let config = {
+        isCaptureWindow: true,
+        windowId: data.windowId,
+        ScreenCaptureParameters:{frameRate:15}
+      }
+
+      let ret = rtcEngine?.startScreenCaptureBySourceType(type, config);
+    }
+
+    sources.push({
+      sourceType: type,
+      x: 0,
+      y: 0,
+      width: data.width,
+      height: data.length,
+      zOrder: 1,
+      alpha: 1
+    })
+
+    handlePreview();
+  }
+
+  const handleScreenModalOk = (data) => {
+    handleAddScreen(data)
+    setIsScreenModalOpen(false)
+  }
+
+  const handleScreenModalCancal = () => {
+    setIsScreenModalOpen(false)
+  }
+
+  const handlePreview = () =>{
+    if(!isPreview)
+    {
+      let ret = rtcEngine?.startLocalVideoTranscoder(calcTranscoderOptions(sources));
+
+      ret = rtcEngine?.setupLocalVideo({
+        sourceType: VideoSourceType.VideoSourceTranscoded,
+        view: videoRef.current,
+        uid: Config.uid,
+        mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
+        renderMode: RenderModeType.RenderModeFit,
+      });
+
+      setPreviewState(true);
+    }
+    else{
+      rtcEngine?.updateLocalTranscoderConfiguration(calcTranscoderOptions(sources));
+    }
+  }
+
+  const calcTranscoderOptions = (sources) => {
+    let videoInputStreams = sources.map(s => {
+      return Object.assign({connectionId: 0}, s)
+    }) 
+    //dimensions 参数设置输出的画面横竖屏
+    let videoOutputConfigurationobj = {
+      dimensions: isHorizontal ? { width: 1920, height: 1080 } : { width: 1080, height: 1920 },
+      frameRate: 25,
+      bitrate: 0,
+      minBitrate: -1,
+      orientationMode: 0,
+      degradationPreference: 0,
+      mirrorMode: 0
+    }
+
+    return {
+      streamCount: sources.length,
+      videoInputStreams: videoInputStreams,
+      videoOutputConfiguration: videoOutputConfigurationobj
+    }
   }
 
   const updateSelectedDeviceInfo = (data) => {
@@ -172,6 +293,7 @@ const LivePreview: React.FC = () => {
 
   const handleOptClick = (e) => {
     console.log(e.target.id)
+    console.log(`handleOptClick`)
     console.log(isAppIdExist)
     if (!isAppIdExist) {
       message.info('请输入正确App ID')
@@ -179,6 +301,15 @@ const LivePreview: React.FC = () => {
     }
     if (e.target.id === 'camera') {
       setIsCameraModalOpen(true)
+    }
+    if (e.target.id === 'capture') {
+      setIsScreenModalOpen(true)
+    }
+    if (e.target.id === 'media') {
+
+    }
+    if (e.target.id === 'virtual') {
+
     }
   }
 
