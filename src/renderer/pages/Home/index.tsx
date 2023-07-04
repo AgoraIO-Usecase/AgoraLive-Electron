@@ -9,7 +9,6 @@ import InteractiveMsg from '../../component/InteractiveMsg'
 import LivePreview from '../../component/LivePreview'
 import Setting from '../../component/Setting'
 import RtcEngineContext from '../../context/rtcEngineContext'
-import { app } from 'electron'
 const { Sider, Content } = Layout
 
 const Home: React.FC = () => {

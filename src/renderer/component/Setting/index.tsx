@@ -38,10 +38,17 @@ const Setting: React.FC = () => {
         logConfig: { filePath: Config.SDKLogPath },
         channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
       })
+      let result = rtcEngine?.enableExtension(
+        'agora_video_filters_segmentation',
+        'portrait_segmentation',
+        true
+      )
+      console.log('init extension result: ',result)
       rtcEngine?.registerEventHandler(EventHandles)
       if (ret === 0) {
         updateAppStatus(true)
       } else {
+        console.error('init engine failed')
         updateAppStatus(false)
       } 
       console.log('----ret: ',ret)
@@ -245,8 +252,8 @@ const Setting: React.FC = () => {
       <Divider className={styles.divider} />
       <div className={styles.settingInput}>
         <div className={styles.inputArea}>
-         <Input className={styles.customInput} placeholder="App ID" value={appId} onChange={onAppIdChange}/>
-         <Input className={styles.customInput} placeholder="频道号" value={channel} onChange={onChannelChange}/>
+         <Input disabled={isJoinChannel} className={styles.customInput} placeholder="App ID" value={appId} onChange={onAppIdChange}/>
+         <Input disabled={isJoinChannel} className={styles.customInput} placeholder="频道号" value={channel} onChange={onChannelChange}/>
         </div>
         <div>
           <Button onClick={handleJoinChannel} type="primary"> {isJoinChannel ? '结束直播' : '立即开播'}</Button>

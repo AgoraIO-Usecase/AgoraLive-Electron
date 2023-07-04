@@ -8,7 +8,20 @@ body,
   margin: 0;
   overflow: hidden;
 }
-
+.ant-modal-content > .ant-modal-footer {
+  border-top: transparent;
+}
 .ant-slider-disabled > .ant-slider-rail{
   background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.ant-dropdown-menu {
+  background-color: #2B2B2C;
+  .ant-dropdown-menu-item {
+    color: #D8D8D9;
+    font-size: 14px;
+  }
+  .ant-dropdown-menu-item-active {
+    background-color: rgba(255, 255, 255, 0.06);
+  }
 }

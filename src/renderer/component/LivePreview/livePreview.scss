@@ -53,6 +53,7 @@
     align-items: center;
     margin-top: 24px;
     .area {
+      position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -100,12 +101,14 @@
     display: flex;
     flex-direction: row;
     .area {
+      position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
       margin: 24px 25px;
       order: 2;
-      width: 306px;
+      width: 280px;
+      height: 500px;
       color: #4C5159;
       font-size: 14px;
       border: 2px dashed #2B2B2C;

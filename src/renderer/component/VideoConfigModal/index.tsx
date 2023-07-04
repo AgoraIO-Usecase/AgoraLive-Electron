@@ -50,6 +50,14 @@ const VideoConfigModal: React.FC<IProps> = ({isOpen, onChange}) => {
         encodingPreference: videoConfig.method
       }
     }
+    if(videoConfig.encoder === VideoCodecType.VideoCodecH265)
+    {
+      //rtcEngine?.setParameters(JSON.stringify({'engine.video.enable_hw_encoder': true}));
+      rtcEngine?.setParameters(JSON.stringify({'che.video.videoCodecIndex': 2}));
+      //rtcEngine?.setParameters(JSON.stringify({'che.video.hw265_enc_enable': 1}));
+    }
+
+
     let ret = rtcEngine?.setVideoEncoderConfiguration(config)
     console.log('----config: ',config)
     console.log('----ret: ',ret)

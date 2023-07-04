@@ -1,0 +1,16 @@
+.content {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  button {
+    width: 80px;
+  }
+}
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  > div {
+    margin-right: 4px;
+  }
+}

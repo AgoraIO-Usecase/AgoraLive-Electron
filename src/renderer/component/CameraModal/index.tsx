@@ -44,24 +44,26 @@ const CameraModal: React.FC<IProps> = ({isOpen, deviceIndex, capacityIndex, devi
   const [frameRate, setFrameRate] = useState<number>(devices[deviceIndex].capacity[capacityIndex].modifyFps||0)
 
   const formChange = (key, value) => {
-    console.log('key: ',key,'value: ',value)
+    console.log('key: ',key,'value: ',value, 'capIndex',capIndex)
     if (key === 'camera') {
       setDevIndex(value)
       setCapIndex(0)
-      setFrameRate(devices[value].capacity[capIndex].modifyFps)
+      setFrameRate(devices[value].capacity[capIndex]!.modifyFps)
     }
     if (key === 'resolution') {
       setCapIndex(value)
-      setFrameRate(devices[devIndex].capacity[value].modifyFps)
+      setFrameRate(devices[devIndex].capacity[value]!.modifyFps)
     }
     if (key === 'frameRate') {
       setFrameRate(value)
     }
   }
 
+  /*
   const capInfo = useMemo(()=> {
     return devices[devIndex].capacity
   },[devIndex])
+  */
 
   const handleAdd = () => {
     let confirmData = {
@@ -72,6 +74,7 @@ const CameraModal: React.FC<IProps> = ({isOpen, deviceIndex, capacityIndex, devi
     onOk(confirmData)
   }
 
+  const capInfo = devices[devIndex].capacity
 
   return (
     <Modal

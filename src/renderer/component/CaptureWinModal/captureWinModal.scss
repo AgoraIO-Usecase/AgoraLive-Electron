@@ -1,0 +1,30 @@
+.content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  overflow-y: scroll;
+  .card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    margin: 4px;
+    width: 120px;
+    height: 120px;
+    background: #2B2B2C;
+    border-radius: 4px;
+    cursor: pointer;
+    &:hover {
+      border: 2px solid #0A84FF
+    }
+    img {
+      width: 110px;
+      height: 80px;
+      pointer-events: none;
+    }
+    div {
+      color: #D8D8D9;
+      pointer-events: none;
+    }
+  }
+}

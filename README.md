@@ -22,7 +22,7 @@ Then do the following:
 git clone git@github.com:AgoraIO-Usecase/AgoraLive-Electron.git
 cd ./
 yarn
-yarn dev
+yarn start
 ```
 ## 👏 Feedback
 
