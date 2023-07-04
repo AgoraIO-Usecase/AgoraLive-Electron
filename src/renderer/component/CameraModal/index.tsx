@@ -45,10 +45,11 @@ const CameraModal: React.FC<IProps> = ({isOpen, deviceIndex, capacityIndex, devi
 
   const formChange = (key, value) => {
     console.log('key: ',key,'value: ',value, 'capIndex',capIndex)
+    console.log('------devices: ',devices)
     if (key === 'camera') {
       setDevIndex(value)
       setCapIndex(0)
-      setFrameRate(devices[value].capacity[capIndex]!.modifyFps)
+      setFrameRate(devices[value].capacity[0]!.modifyFps)
     }
     if (key === 'resolution') {
       setCapIndex(value)
