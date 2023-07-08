@@ -52,11 +52,21 @@ const VideoConfigModal: React.FC<IProps> = ({isOpen, onChange}) => {
     }
     if(videoConfig.encoder === VideoCodecType.VideoCodecH265)
     {
-      //rtcEngine?.setParameters(JSON.stringify({'engine.video.enable_hw_encoder': true}));
+      rtcEngine?.setParameters(JSON.stringify({'engine.video.enable_hw_encoder': true}));
       rtcEngine?.setParameters(JSON.stringify({'che.video.videoCodecIndex': 2}));
-      //rtcEngine?.setParameters(JSON.stringify({'che.video.hw265_enc_enable': 1}));
+      rtcEngine?.setParameters(JSON.stringify({'che.video.hw265_enc_enable': 1}));
     }
 
+    if(videoConfig.pvc === true)
+    {
+      rtcEngine?.setParameters(JSON.stringify({"rtc.video.enable_pvc": true}));
+      //支持最大分辨率1920*1080=2073600
+      rtcEngine?.setParameters(JSON.stringify({"rtc.video.pvc_max_support_resolution": 2073600}));
+      rtcEngine?.setParameters(JSON.stringify({"rtc.video.saveBitrateParams": {"pvc_720p" : 55.0,"pvc_540p" : 15.0,"pvc_360p" : 15.0}}))
+    }
+    else{
+      rtcEngine?.setParameters(JSON.stringify({"rtc.video.enable_pvc": false}));
+    }
 
     let ret = rtcEngine?.setVideoEncoderConfiguration(config)
     console.log('----config: ',config)
