@@ -1,4 +1,5 @@
 import path from 'path';
+import { message } from 'antd'
 
 export const objToArray = (obj) =>
   Object.keys(obj).map((key) => ({ key, value: obj[key] }));
@@ -54,7 +55,6 @@ export const isDebug = () => {
 export const getResourcePath = (filePath = './') => {
   let resourcePath;
   if (isDebug()) {
-    console.log('-----isDebug mode')
     resourcePath = path.resolve(
       `${__dirname}`,
       '../../../extraResources/',
@@ -84,12 +84,21 @@ export const getRandomInt = (min = 1, max = 99999) => {
 export const debounce = (func, wait) => {
   let delay = wait || 500;
   let timer;
-  return function(this: unknown, ...args: any[]){
+  return function (this: unknown, ...args: any[]) {
     const _this = this;
-    if(timer) clearTimeout(timer);
+    if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
       timer = null;
       func.apply(_this, args)
     }, delay)
+  }
+}
+
+
+export const checkAppId = (appId: string) => {
+  if (!appId) {
+    const msg = '请输入App ID'
+    message.error(msg)
+    throw new Error(msg)
   }
 }

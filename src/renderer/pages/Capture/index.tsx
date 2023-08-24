@@ -3,20 +3,20 @@ import styles from './Capture.scss'
 import { ipcRenderer } from 'electron'
 
 const Capture: React.FC = () => {
-  const container = useRef<HTMLDivElement|null>(null)
+  const container = useRef<HTMLDivElement | null>(null)
   const isDrawing = useRef(false)
-  const startPos = useRef({x:0,y:0})
-  const captureDiv = useRef<HTMLDivElement| null>(null)
-  const buttonRef = useRef<HTMLButtonElement|null>(null)
-  const rect = useRef({x: 0, y: 0,width: 0, height: 0})
+  const startPos = useRef({ x: 0, y: 0 })
+  const captureDiv = useRef<HTMLDivElement | null>(null)
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+  const rect = useRef({ x: 0, y: 0, width: 0, height: 0 })
 
-  const handleMosueDown = (e) => {
+  const onMouseDown = (e) => {
 
     if (e.button === 2) {
       ipcRenderer.send('capture-close')
       return
     }
-    if (e.target.id  === 'comfirm') {
+    if (e.target.id === 'comfirm') {
       return
     }
 
@@ -35,38 +35,38 @@ const Capture: React.FC = () => {
     //rect.current.style.pointerEvents = 'none'; // 防止矩形内部的点击事件被触发
     container.current?.appendChild(captureDiv.current);
 
-}
-
-const handleOnButtonClick = (e) => {
-  e.stopPropagation();
-  console.log('-----on button click rect: ',rect.current)
-  ipcRenderer.send('capture-complete', rect.current)
-}
-
-const handleMosueMove = (e) => {
-  if (!isDrawing.current) return;
-  if (e.target.id  === 'comfirm') {
-    return
   }
 
-  const currentX = e.clientX;
-  const currentY = e.clientY;
+  const handleOnButtonClick = (e) => {
+    e.stopPropagation();
+    console.log('-----on button click rect: ', rect.current)
+    ipcRenderer.send('capture-complete', rect.current)
+  }
 
-  const width = currentX - startPos.current.x
-  const height = currentY - startPos.current.y
-  // 设置矩形的位置和尺寸
-  captureDiv.current!.style.left = `${startPos.current.x}px`;
-  captureDiv.current!.style.top = `${startPos.current.y}px`;
-  captureDiv.current!.style.width = `${width}px`;
-  captureDiv.current!.style.height = `${height}px`;
-}
+  const onMouseMove = (e) => {
+    if (!isDrawing.current) return;
+    if (e.target.id === 'comfirm') {
+      return
+    }
 
-  const handleMouseUp = (e) => {
-    if (e.target.id  === 'comfirm') {
+    const currentX = e.clientX;
+    const currentY = e.clientY;
+
+    const width = currentX - startPos.current.x
+    const height = currentY - startPos.current.y
+    // 设置矩形的位置和尺寸
+    captureDiv.current!.style.left = `${startPos.current.x}px`;
+    captureDiv.current!.style.top = `${startPos.current.y}px`;
+    captureDiv.current!.style.width = `${width}px`;
+    captureDiv.current!.style.height = `${height}px`;
+  }
+
+  const onMouseUp = (e) => {
+    if (e.target.id === 'comfirm') {
       return
     }
     // 记录矩形的坐标和宽高
-    console.log('----isDrawing: ',isDrawing.current)
+    console.log('----isDrawing: ', isDrawing.current)
     if (isDrawing.current) {
       const rectX = parseInt(captureDiv.current!.style.left, 10);
       const rectY = parseInt(captureDiv.current!.style.top, 10);
@@ -78,8 +78,8 @@ const handleMosueMove = (e) => {
         rect.current.width = rectWidth
         rect.current.height = rectHeight
       }
-      
-        //创建button
+
+      //创建button
       buttonRef.current = document.createElement('button')
       buttonRef.current.id = 'comfirm'
       buttonRef.current.innerText = '确定';
@@ -99,8 +99,8 @@ const handleMosueMove = (e) => {
     }
   }
   return (
-    <div ref={container} className={styles.capture} onMouseDown={handleMosueDown} onMouseMove={handleMosueMove} onMouseUp={handleMouseUp}>
-      
+    <div ref={container} className={styles.capture} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
+
     </div>
   )
 }

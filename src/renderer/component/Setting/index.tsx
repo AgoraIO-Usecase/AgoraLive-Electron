@@ -1,11 +1,9 @@
 import React, { useState, useContext, useEffect, useRef } from "react"
 import styles from './setting.scss'
 import { Divider, Slider, Input, Button } from 'antd'
-import { getResourcePath } from '../../utils/index'
-import { ChannelProfileType,IRtcEngineEventHandler,ClientRoleType } from 'agora-electron-sdk'
+import { getResourcePath, checkAppId } from '../../utils/index'
+import { ChannelProfileType, IRtcEngineEventHandler, ClientRoleType } from 'agora-electron-sdk'
 import RtcEngineContext from "../../context/rtcEngineContext"
-import Config from '../../config/agora.config'
-import { IAppContext } from '../../context/rtcEngineContext'
 import VideoConfigModal from '../VideoConfigModal'
 import { message } from 'antd'
 
@@ -18,64 +16,28 @@ const localUid = 0
 
 const Setting: React.FC = () => {
   console.log('----render setting')
-  //const [appId, setAppId] = useState('')
-  const [channel, setChannel] = useState('')
   const [isJoinChannel, setJoinState] = useState(false)
-  const [disableVoice,setDisableVoice] = useState(false)
-  const [disableMicro,setDisableMicro] = useState(false)
+  const [disableVoice, setDisableVoice] = useState(false)
+  const [disableMicro, setDisableMicro] = useState(false)
   const [voiceVolume, setVoiceNum] = useState(50)
   const [microVolume, setMicroVolume] = useState(50)
   const [isOpen, setIsOpen] = useState(false)
   const voiceVolumeRef = useRef(voiceVolume)
   const microVolumeRef = useRef(microVolume)
-  const { rtcEngine,appId,isAppIdExist, updateAppStatus, updateAppId} = useContext(RtcEngineContext) as IAppContext
+  const { rtcEngine, appId, setAppId, channel, setChannel, sdkLogPath } = useContext(RtcEngineContext)
 
-  const rtcEngineInit = () => {
-    console.log('---rtcEngineInit appId: ',appId)
-    if (appId.length > 0) {
-      let ret = rtcEngine?.initialize({
-        appId: appId,
-        logConfig: { filePath: Config.SDKLogPath },
-        channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
-      })
-      let result = rtcEngine?.enableExtension(
-        'agora_video_filters_segmentation',
-        'portrait_segmentation',
-        true
-      )
-      console.log('init extension result: ',result)
-      rtcEngine?.registerEventHandler(EventHandles)
-      if (ret === 0) {
-        updateAppStatus(true)
-      } else {
-        console.error('init engine failed')
-        updateAppStatus(false)
-      } 
-      console.log('----ret: ',ret)
-    } else {
-      updateAppStatus(false)
-    }
-  }
 
-  const rtcEngineRelease = () => {
-    console.log('----rtcEngineRelease ')
-    rtcEngine?.release()
-  }
 
   const onChannelChange = (e) => {
-    console.log('channel: ',e.target.value)
     setChannel(e.target.value)
   }
+
   const onAppIdChange = (e) => {
-    console.log('appId: ',e.target.value)
-    updateAppId(e.target.value)
+    setAppId(e.target.value)
   }
 
   const handleVoiceStatus = (e) => {
-    if (!isAppIdExist) {
-      message.info('请输入正确App ID')
-      return
-    }
+    checkAppId(appId)
     if (!disableVoice) {
       voiceVolumeRef.current = voiceVolume
       setVoiceNum(0)
@@ -88,10 +50,7 @@ const Setting: React.FC = () => {
   }
 
   const handleMicroStatus = (e) => {
-    if (!isAppIdExist) {
-      message.info('请输入正确App ID')
-      return
-    }
+    checkAppId(appId)
     if (!disableMicro) {
       microVolumeRef.current = microVolume
       setMicroVolume(0)
@@ -103,41 +62,33 @@ const Setting: React.FC = () => {
     }
   }
 
-  const onVoiceAfterChange =(v)=>{
-    if (!isAppIdExist) {
-      message.info('请输入正确App ID')
-      return
-    }
+  const onVoiceAfterChange = (v) => {
+    checkAppId(appId)
     setVoiceNum(v)
     rtcEngine?.adjustPlaybackSignalVolume(v);
-    console.log('onVoiceAfterChange: ',v)
+    console.log('onVoiceAfterChange: ', v)
   }
 
-  const onMicAfterChange =(v)=>{
-    if (!isAppIdExist) {
-      message.info('请输入正确App ID')
-      return
-    }
+  const onMicAfterChange = (v) => {
+    checkAppId(appId)
     setMicroVolume(v)
     rtcEngine?.adjustRecordingSignalVolume(v);
-    console.log('onMicAfterChange: ',v)
-    }
+    console.log('onMicAfterChange: ', v)
+  }
 
-  const handleJoinChannel = ()=>{
-    console.log('handleJoinChannel: ')
-    if (!isAppIdExist) {
-      message.info('请输入正确App ID')
-      return
-    }
+  const handleJoinChannel = () => {
+    console.log('handleJoinChannel: ', channel)
+    checkAppId(appId)
     if (channel.trim() === '') {
       message.info('频道号不为空，请输入频道号')
       return
     }
-    if(!isJoinChannel)
-    {
+
+
+    if (!isJoinChannel) {
       rtcEngine?.setChannelProfile(1)
-    //  rtcEngine?.setClientRole(ClientRoleType.ClientRoleBroadcaster)
-    //  rtcEngine?.registerMediaMetadataObserver();
+      //  rtcEngine?.setClientRole(ClientRoleType.ClientRoleBroadcaster)
+      //  rtcEngine?.registerMediaMetadataObserver();
       rtcEngine?.setAudioProfile(0, 3)
       let ret = rtcEngine?.joinChannel('', channel, localUid, {
         // Make myself as the broadcaster to send stream to remote
@@ -148,75 +99,28 @@ const Setting: React.FC = () => {
         autoSubscribeAudio: true,
         autoSubscribeVideo: true,
       });
-  
+
       console.log(`--------join channel: ${ret},${channel}`)
     }
-    else{
+    else {
       rtcEngine?.leaveChannel()
     }
-  } 
-
-  const EventHandles:IRtcEngineEventHandler = {
-    // 监听本地用户加入频道事件
-    onJoinChannelSuccess: ({ channelId, localUid }, elapsed) => {
-        console.log('成功加入频道：' + channelId + '_' + localUid);
-        //isJoined = true;
-        // 本地用户加入频道后，设置本地视频窗口
-        // this.setState({
-        //   local: localUid,
-        //   isJoined: true
-        // });
-        setJoinState(true)
-    },
-
-    onLeaveChannel: ({ channelId, localUid }, stats) => {
-        console.log('成功退出频道：' + channelId);
-
-        setJoinState(false)
-    },
-
-    // 监听远端用户加入频道事件
-    onUserJoined: ({ channelId, localUid }, remoteUid, elapsed) => {
-        console.log('远端用户 ' + remoteUid + ' 已加入');
-
-    },
-
-    onUserOffline( uid,  reason) {
-     // this.handleAddRemote(channelId, remoteUid, false)
-      },
-
-    onAudioDeviceStateChanged: (deviceId, deviceType, deviceState) => {
-      console.log(`audio device changed:  ${deviceId} ${deviceType} ${deviceState}`)
-    },
-
-    onVideoDeviceStateChanged:(deviceId, deviceType, deviceState) => {
-      console.log(`video device changed: ${deviceId} ${deviceType} ${deviceState}`)
-    },
-
-    onLocalVideoStats:(connection, stats)=>{
-      //console.log(`onLocalVideoStats: ${stats.sentBitrate},${stats.sentFrameRate}`)
-    },
-
   }
+
+
 
   const onVideoConfigChangeCb = () => {
     setIsOpen(false)
   }
 
   const onSettingClick = () => {
-    if (!isAppIdExist) {
+    if (!appId) {
       message.info('请输入正确App ID')
       return
     }
     setIsOpen(true)
   }
 
-  useEffect(() => {
-    rtcEngineInit()
-    return () => {
-      rtcEngineRelease()
-    }
-  }, [appId])
 
 
 
@@ -225,11 +129,11 @@ const Setting: React.FC = () => {
       <div className={styles.tool}>
         <img onClick={onSettingClick} src={`file://${settingIcon}`} alt="" />
         <div className={styles.voice}>
-          <img onClick={handleVoiceStatus} src={ disableVoice? `file://${voiceDisableIcon}`:`file://${voiceIcon}`} alt="" />
+          <img onClick={handleVoiceStatus} src={disableVoice ? `file://${voiceDisableIcon}` : `file://${voiceIcon}`} alt="" />
           <Slider
-            className={styles.customerSlider} 
+            className={styles.customerSlider}
             disabled={disableVoice}
-            tooltip={{open: false}}
+            tooltip={{ open: false }}
             min={0}
             max={100}
             value={voiceVolume}
@@ -237,11 +141,11 @@ const Setting: React.FC = () => {
           />
         </div>
         <div className={styles.microphone}>
-          <img onClick={handleMicroStatus} src={disableMicro ? `file://${microDisableIcon}`:`file://${microIcon}`} alt="" />
-          <Slider 
+          <img onClick={handleMicroStatus} src={disableMicro ? `file://${microDisableIcon}` : `file://${microIcon}`} alt="" />
+          <Slider
             className={styles.customerSlider}
-            disabled ={disableMicro}
-            tooltip={{open: false}}
+            disabled={disableMicro}
+            tooltip={{ open: false }}
             min={0}
             max={100}
             value={microVolume}
@@ -252,14 +156,14 @@ const Setting: React.FC = () => {
       <Divider className={styles.divider} />
       <div className={styles.settingInput}>
         <div className={styles.inputArea}>
-         <Input disabled={isJoinChannel} className={styles.customInput} placeholder="App ID" value={appId} onChange={onAppIdChange}/>
-         <Input disabled={isJoinChannel} className={styles.customInput} placeholder="频道号" value={channel} onChange={onChannelChange}/>
+          <Input disabled={isJoinChannel} className={styles.customInput} placeholder="App ID" value={appId} onChange={onAppIdChange} />
+          <Input disabled={isJoinChannel} className={styles.customInput} placeholder="频道号" value={channel} onChange={onChannelChange} />
         </div>
         <div>
           <Button onClick={handleJoinChannel} type="primary"> {isJoinChannel ? '结束直播' : '立即开播'}</Button>
         </div>
       </div>
-      {isOpen&&(<VideoConfigModal isOpen={isOpen} onChange={onVideoConfigChangeCb}/>)}
+      {isOpen && (<VideoConfigModal isOpen={isOpen} onChange={onVideoConfigChangeCb} />)}
     </div>
   )
 }

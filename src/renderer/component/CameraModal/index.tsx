@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useContext, useEffect, useMemo } from 'react'
 import { Modal, Form, Select, Input } from 'antd'
-import RtcEngineContext, { IAppContext } from "../../context/rtcEngineContext"
 import styles from './cameraModal.scss'
 
 interface IProps {
@@ -38,7 +37,6 @@ const CameraModal: React.FC<IProps> = ({isOpen, deviceIndex, capacityIndex, devi
   console.log('---render CameraModal','deviceIndex: ',deviceIndex, 'capacityIndex: ',capacityIndex)
   console.log('-----devices: ',devices)
   const [formData, setFormData] = useState(getDefaultFormData())
-  const { rtcEngine } = useContext(RtcEngineContext) as IAppContext
   const [devIndex, setDevIndex] = useState(deviceIndex)
   const [capIndex, setCapIndex] = useState(capacityIndex)
   const [frameRate, setFrameRate] = useState<number>(devices[deviceIndex].capacity[capacityIndex].modifyFps||0)
