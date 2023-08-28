@@ -83,16 +83,7 @@ const createCaptureWin = (args) => {
     //titleBarStyle: 'hidden',
     //titleBarOverlay: false,
   })
-
   cptWindow.setFullScreenable(false)
-  /*
-  cptWindow.on('ready-to-show', () => {
-    // 窗口准备显示后再打开开发者工具
-    cptWindow.webContents.openDevTools({
-      mode: 'detach',
-      activate: true,
-    });
-  })*/
   if (isDevelopment) {
     cptWindow.loadURL(`http://localhost:${process.env.ELECTRON_WEBPACK_WDS_PORT}/#/capture`);
   } else {

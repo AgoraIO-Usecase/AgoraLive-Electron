@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "postinstall": "npm run rebuild",
+    "dev": "electron-webpack dev",
     "start": "electron-webpack dev",
     "compile": "electron-webpack",
     "rebuild": "electron-rebuild -f -o ref-napi",

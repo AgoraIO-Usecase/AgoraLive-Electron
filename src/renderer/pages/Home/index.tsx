@@ -15,7 +15,9 @@ import { getRandomInt } from "../../utils"
 const { Sider, Content } = Layout
 
 const Home: React.FC = () => {
-  const [appId, setAppId] = useState('')
+  // TODO: mock app id 
+  const mockAppId = "d9d6367af4a04f2bb602561a30669946"
+  const [appId, setAppId] = useState(mockAppId)
   const [channel, setChannel] = useState('')
 
   const value = {

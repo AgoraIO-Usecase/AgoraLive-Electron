@@ -24,7 +24,6 @@ const SelectBox = (props : ConfigProps) => {
   const [ctxModalPosition, setCtxModalPosition] = useState({top:0, left: 0})
   const [size, setSize] = useState({width: props.width, height: props.height})
   const [isContextMenuDlgOpen, setContextMenuDlgOpen] = useState(false)
-  console.log('------render selectBox')
   useEffect(() => {
     setMounted(true);
     setPosition({
@@ -95,7 +94,6 @@ const SelectBox = (props : ConfigProps) => {
   const getCtxModalParent = () => {
     let canavsMaskDom = document.getElementById('canvas-mask')
     if (canavsMaskDom) {
-      console.log('--------canavsMaskDom: ',canavsMaskDom)
       return canavsMaskDom
     } else {
       return document.body

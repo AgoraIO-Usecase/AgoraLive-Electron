@@ -2,167 +2,87 @@ import React, { useState, useRef, useEffect, useContext } from "react"
 import { app, ipcRenderer } from 'electron'
 import RtcEngineContext, { IAppContext } from "../../context/rtcEngineContext"
 import styles from './livePreview.scss'
-import { getResourcePath, checkAppId } from '../../utils/index'
-import { DownOutlined, UpOutlined } from '@ant-design/icons'
+import {
+  getResourcePath, checkAppId, getShareScreenType,
+  setScreenShareObjStatus, resetData, getCameraType, setCameraTypeStatus,
+  transCodeSources, resetTransCodeSources
+} from '../../utils/index'
 import { message, Dropdown, Menu } from 'antd'
 import CameraModal from '../CameraModal'
 import VirtualBackgroundModal from '../VirtualBackgroundModal'
 import CaptureWinModal from '../CaptureWinModal'
 import SelectBox from '../SelectBox/index'
-import { ChannelProfileType, IRtcEngineEventHandler, ClientRoleType } from 'agora-electron-sdk'
 import { debounce } from "lodash-es"
 import {
   CameraCapturerConfiguration,
   VideoSourceType,
   VideoMirrorModeType,
   RenderModeType,
-  TranscodingVideoStream,
   IMediaPlayer,
   IMediaPlayerSourceObserver,
   MediaPlayerState,
   MediaPlayerError,
   ScreenCaptureSourceType
 } from 'agora-electron-sdk'
+import { useEngine, useMediaPlayer, useScreen } from "../../utils/hooks"
+import { IDevice, SourceType, IDeviceCapacity } from "../../types"
+import OptionsView from "../OptionsView"
+import { MIN_HEIGHT, MIN_WIDTH, MAX_HEIGHT, MAX_WIDTH } from "../../utils/constant"
 
-
-const optConfig = [
-  {
-    id: 'camera',
-    title: '摄像头',
-    imgUrl: getResourcePath('camera.png')
-  },
-  {
-    id: 'capture',
-    title: '窗口捕捉',
-    imgUrl: getResourcePath('capture.png')
-  },
-  {
-    id: 'media',
-    title: '多媒体',
-    imgUrl: getResourcePath('media.png')
-  },
-  {
-    id: 'virtual',
-    title: '虚拟背景',
-    imgUrl: getResourcePath('virtual.png')
-  }
-]
-
-interface IDeviceCapacity {
-  width: number,
-  height: number,
-  fps: number,
-  modifyFps: number
-}
-
-interface IDevice {
-  deviceId: string,
-  deviceName: string
-  capacity: IDeviceCapacity[]
-}
-
-interface IScreenInfo {
-  isDisplay: boolean,
-  windowId: number,
-  width: number,
-  heigth: number,
-  title: string
-}
-
-interface sourceType {
-  id: string,
-  source: TranscodingVideoStream
-}
 
 const LivePreview: React.FC = () => {
-  console.log('----render LivePreview')
   const [isHorizontal, setIsHorizontal] = useState(true)
-  const isHorizontalRef = useRef(true)
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false)
   const [isVirtualBgModalOpen, setVirtualBgModalOpen] = useState(false)
   const [isCapWinModalOpen, setCapWinModalOpen] = useState(false)
   const [isCapScreenModalOpen, setCapScreenModalOpen] = useState(false)
-  const [capWindowSources, setCapWindowSources] = useState<any>([])
-  const [capScreenSources, setCapScreenSources] = useState<any>([])
+  // const [capScreenSources, setCapScreenSources] = useState<any>([])
   const [enableGreenScreen, setEnableGreenScreen] = useState(false)
-  const [devices, setDevices] = useState<IDevice[]>([])
   const [deviceIndex, setDeviceIndex] = useState(0)
   const [capacityIndex, setCapacityIndex] = useState(0)
-  const [isCaptureMenuOpen, setCaptureMenuOpen] = useState(false)
-  const [isMediaMenuOpen, setMediaMenuOpen] = useState(false)
   const [isPreview, setPreview] = useState(false)
   const [checkIndex, setCheckIndex] = useState(-1)
   const videoRef = useRef<HTMLDivElement>(null)
-  const mediaPlayer = useRef<IMediaPlayer | null>(null)
   const zoom = useRef(1)
-  const transCodeSources = useRef<sourceType[]>([])
-  const cameraType = useRef({})
-  const screenShareObj = useRef({})
-  const { rtcEngine, appId, uid, sdkLogPath } = useContext(RtcEngineContext)
-  const init_width = 300, init_height = 300
-  const max_width = 1280, max_height = 720
+  const { appId, uid } = useContext(RtcEngineContext)
+  const { createMediaPlayer, mediaPlayer } = useMediaPlayer()
+  const { initEngine, destoryEngine, rtcEngine, devices, updateDevices } = useEngine()
+  const { getCapScreenSources, getCapWinSources } = useScreen()
+
   const [boxRect, setBoxRect] = useState({
     containerId: 'canvas-mask',
     top: 0,
     left: 0,
-    width: init_width,
-    height: init_height
+    width: MIN_WIDTH,
+    height: MIN_HEIGHT
   })
 
   useEffect(() => {
     if (appId) {
-      rtcEngineInit()
+      initEngine()
       setDeviceIndex(0)
       setCapacityIndex(0)
-      enumerateDevices()
       createMediaPlayer()
-      screenShareObj.current = { firstScreen: false, secondScreen: false, thirdScreen: false }
-      cameraType.current = { firstCamera: false, secondCamera: false, thirdCamera: false }
     }
 
     return () => {
-      rtcEngineRelease()
+      destoryEngine()
     }
 
   }, [appId])
-
-
-
-  const rtcEngineInit = () => {
-    rtcEngine?.initialize({
-      appId: appId,
-      logConfig: { filePath: sdkLogPath },
-      channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
-    })
-    let result = rtcEngine?.enableExtension(
-      'agora_video_filters_segmentation',
-      'portrait_segmentation',
-      true
-    )
-    console.log('init extension result: ', result)
-    rtcEngine?.registerEventHandler(EventHandles)
-  }
-
-  const rtcEngineRelease = () => {
-    rtcEngine?.release()
-  }
-
 
 
   useEffect(() => {
     registerIpcRenderEvent()
     window.addEventListener('mousedown', handleMouseDown)
     return () => {
-      transCodeSources.current = []
       window.removeEventListener('mousedown', handleMouseDown)
-      screenShareObj.current = { firstScreen: false, secondScreen: false, thirdScreen: false }
-      cameraType.current = { firstCamera: false, secondCamera: false, thirdCamera: false }
+      resetData()
     }
   }, [])
 
   useEffect(() => {
     if (isPreview) {
-      console.log('-------updateCanvasConfig preview is true')
       setTimeout(() => {
         updateCanvasConfig()
       }, 2000);
@@ -170,54 +90,9 @@ const LivePreview: React.FC = () => {
   }, [isPreview])
 
   useEffect(() => {
-    isHorizontalRef.current = isHorizontal
-    console.log('layout is change isHorizontal: ', isHorizontalRef.current)
     handleStopPreview()
   }, [isHorizontal])
 
-
-  const EventHandles: IRtcEngineEventHandler = {
-    // 监听本地用户加入频道事件
-    onJoinChannelSuccess: ({ channelId, localUid }, elapsed) => {
-      console.log('成功加入频道：' + channelId + '_' + localUid);
-      //isJoined = true;
-      // 本地用户加入频道后，设置本地视频窗口
-      // this.setState({
-      //   local: localUid,
-      //   isJoined: true
-      // });
-      // setJoinState(true)
-    },
-
-    onLeaveChannel: ({ channelId, localUid }, stats) => {
-      console.log('成功退出频道：' + channelId);
-
-      // setJoinState(false)
-    },
-
-    // 监听远端用户加入频道事件
-    onUserJoined: ({ channelId, localUid }, remoteUid, elapsed) => {
-      console.log('远端用户 ' + remoteUid + ' 已加入');
-
-    },
-
-    onUserOffline(uid, reason) {
-      // this.handleAddRemote(channelId, remoteUid, false)
-    },
-
-    onAudioDeviceStateChanged: (deviceId, deviceType, deviceState) => {
-      console.log(`audio device changed:  ${deviceId} ${deviceType} ${deviceState}`)
-    },
-
-    onVideoDeviceStateChanged: (deviceId, deviceType, deviceState) => {
-      console.log(`video device changed: ${deviceId} ${deviceType} ${deviceState}`)
-    },
-
-    onLocalVideoStats: (connection, stats) => {
-      //console.log(`onLocalVideoStats: ${stats.sentBitrate},${stats.sentFrameRate}`)
-    },
-
-  }
 
   const updateCanvasConfig = () => {
     console.log('----videoRef: ', videoRef.current)
@@ -227,12 +102,12 @@ const LivePreview: React.FC = () => {
     console.log('------zoom: ', zoom)
     const parentDom = videoRef.current?.querySelector('div')
     let width, height
-    if (isHorizontalRef.current) {
-      width = Math.floor(max_width * zoom.current)
-      height = Math.floor(max_height * zoom.current)
+    if (isHorizontal) {
+      width = Math.floor(MAX_WIDTH * zoom.current)
+      height = Math.floor(MAX_HEIGHT * zoom.current)
     } else {
-      width = Math.floor(max_height * zoom.current)
-      height = Math.floor(max_width * zoom.current)
+      width = Math.floor(MAX_HEIGHT * zoom.current)
+      height = Math.floor(MAX_WIDTH * zoom.current)
     }
     if (parentDom) {
       createCanvasMask(parentDom, width, height)
@@ -260,8 +135,8 @@ const LivePreview: React.FC = () => {
   }
 
   const handleMouseDown = (e) => {
-    console.log('----handleMouseDown offsetX: ', 'e.offsetY:', e.offsetY)
-    console.log('-------handleMouseDown id: ', e.target.id)
+    // console.log('----handleMouseDown offsetX: ', 'e.offsetY:', e.offsetY)
+    // console.log('-------handleMouseDown id: ', e.target.id)
     if (e.target.id === 'canvas-mask') {
       let index = getSelectNode(e.offsetX, e.offsetY)
       console.log('----select index: ', index)
@@ -283,7 +158,7 @@ const LivePreview: React.FC = () => {
 
   const getSelectNode = (posX, posY) => {
     let selectIndex = -1, zOrder = 0
-    transCodeSources.current.forEach((item, index) => {
+    transCodeSources.forEach((item, index) => {
       let zoomX = Math.floor(item.source.x! * zoom.current)
       let zoomY = Math.floor(item.source.y! * zoom.current)
       let zoomW = Math.floor(item.source.width! * zoom.current)
@@ -300,21 +175,21 @@ const LivePreview: React.FC = () => {
 
   const updateSelectBoxRect = (selectIndex, dx = 0, dy = 0, dw = 0, dh = 0) => {
     if (selectIndex >= 0) {
-      console.log('updateSelectBoxRect dx: ', Math.floor(transCodeSources.current[selectIndex].source.x! * zoom.current) + dx)
-      console.log('updateSelectBoxRect dy: ', Math.floor(transCodeSources.current[selectIndex].source.y! * zoom.current) + dy)
+      console.log('updateSelectBoxRect dx: ', Math.floor(transCodeSources[selectIndex].source.x! * zoom.current) + dx)
+      console.log('updateSelectBoxRect dy: ', Math.floor(transCodeSources[selectIndex].source.y! * zoom.current) + dy)
       console.log('updateSelectBoxRect dw, dh: ', dw, dh)
       setBoxRect({
         ...boxRect,
-        left: Math.floor((transCodeSources.current[selectIndex].source.x! + dx) * zoom.current),
-        top: Math.floor((transCodeSources.current[selectIndex].source.y! + dy) * zoom.current),
-        width: Math.floor((transCodeSources.current[selectIndex].source.width!) * zoom.current + dw),
-        height: Math.floor((transCodeSources.current[selectIndex].source.height!) * zoom.current + dh)
+        left: Math.floor((transCodeSources[selectIndex].source.x! + dx) * zoom.current),
+        top: Math.floor((transCodeSources[selectIndex].source.y! + dy) * zoom.current),
+        width: Math.floor((transCodeSources[selectIndex].source.width!) * zoom.current + dw),
+        height: Math.floor((transCodeSources[selectIndex].source.height!) * zoom.current + dh)
       })
     }
   }
 
-  const getNewSources = (selectIndex: number, x: number, y: number, dw: number, dh: number): sourceType[] => {
-    let newSources: sourceType[] = transCodeSources.current.map((item, index) => {
+  const getNewSources = (selectIndex: number, x: number, y: number, dw: number, dh: number): SourceType[] => {
+    let newSources: SourceType[] = transCodeSources.map((item, index) => {
       if (index === selectIndex) {
         let dx = Math.floor(x / zoom.current) - item.source.x!
         let dy = Math.floor(y / zoom.current) - item.source.y!
@@ -353,14 +228,14 @@ const LivePreview: React.FC = () => {
       updateSources(checkIndex, x, y, dw, dh)
     } else {
       let lastSources = getNewSources(checkIndex, x, y, dw, dh)
-      transCodeSources.current = lastSources
+      transCodeSources = lastSources
       handlePreview()
     }
   }
 
   const handleMoveUp = () => {
     if (checkIndex >= 0) {
-      transCodeSources.current[checkIndex].source.zOrder! += 1
+      transCodeSources[checkIndex].source.zOrder! += 1
       handlePreview()
       setCheckIndex(-1)
     }
@@ -368,8 +243,8 @@ const LivePreview: React.FC = () => {
 
   const handleMoveDown = () => {
     console.log('------checkIndex: ', checkIndex)
-    if (checkIndex >= 0 && transCodeSources.current[checkIndex].source.zOrder! >= 2) {
-      transCodeSources.current[checkIndex].source.zOrder! = 1
+    if (checkIndex >= 0 && transCodeSources[checkIndex].source.zOrder! >= 2) {
+      transCodeSources[checkIndex].source.zOrder! = 1
       handlePreview()
       setCheckIndex(-1)
     }
@@ -378,28 +253,28 @@ const LivePreview: React.FC = () => {
   const handleDelete = () => {
     console.log('-----handleDelete checkIndex: ', checkIndex)
     if (checkIndex >= 0) {
-      if (transCodeSources.current[checkIndex].source.sourceType === VideoSourceType.VideoSourceMediaPlayer) {
+      if (transCodeSources[checkIndex].source.sourceType === VideoSourceType.VideoSourceMediaPlayer) {
         //destroyMediaPlayer()
-        mediaPlayer.current?.stop()
+        mediaPlayer?.stop()
       }
-      if (transCodeSources.current[checkIndex].source.sourceType === VideoSourceType.VideoSourceCamera ||
-        transCodeSources.current[checkIndex].source.sourceType === VideoSourceType.VideoSourceCameraSecondary) {
+      if (transCodeSources[checkIndex].source.sourceType === VideoSourceType.VideoSourceCamera ||
+        transCodeSources[checkIndex].source.sourceType === VideoSourceType.VideoSourceCameraSecondary) {
         //destroyMediaPlayer()
         //mediaPlayer.current?.stop()
         //rtcEngine?.stopPreview()
-        rtcEngine?.stopCameraCapture(transCodeSources.current[checkIndex].source.sourceType!)
-        setCameraTypeStatus(transCodeSources.current[checkIndex].source.sourceType, false)
+        rtcEngine?.stopCameraCapture(transCodeSources[checkIndex].source.sourceType!)
+        setCameraTypeStatus(transCodeSources[checkIndex].source.sourceType, false)
       }
-      if (transCodeSources.current[checkIndex].source.sourceType === VideoSourceType.VideoSourceScreenPrimary ||
-        transCodeSources.current[checkIndex].source.sourceType === VideoSourceType.VideoSourceScreenSecondary ||
-        transCodeSources.current[checkIndex].source.sourceType === VideoSourceType.VideoSourceScreenThird) {
-        rtcEngine?.stopScreenCaptureBySourceType(transCodeSources.current[checkIndex].source.sourceType!)
-        setScreenShareObjStatus(transCodeSources.current[checkIndex].source.sourceType, false)
+      if (transCodeSources[checkIndex].source.sourceType === VideoSourceType.VideoSourceScreenPrimary ||
+        transCodeSources[checkIndex].source.sourceType === VideoSourceType.VideoSourceScreenSecondary ||
+        transCodeSources[checkIndex].source.sourceType === VideoSourceType.VideoSourceScreenThird) {
+        rtcEngine?.stopScreenCaptureBySourceType(transCodeSources[checkIndex].source.sourceType!)
+        setScreenShareObjStatus(transCodeSources[checkIndex].source.sourceType, false)
       }
-      let newSource = transCodeSources.current.filter((item, index) => {
+      let newSource = transCodeSources.filter((item, index) => {
         return index !== checkIndex
       })
-      transCodeSources.current = newSource
+      transCodeSources = newSource
       handlePreview()
       setCheckIndex(-1)
     }
@@ -418,113 +293,6 @@ const LivePreview: React.FC = () => {
     })
   }
 
-  const enumerateDevices = () => {
-    const videoDevices = rtcEngine?.getVideoDeviceManager().enumerateVideoDevices()
-    console.log('----newDevices: ', videoDevices)
-    if (videoDevices && videoDevices.length > 0) {
-      let newDevices: IDevice[] = videoDevices.map((item) => {
-        let nums = rtcEngine?.getVideoDeviceManager().numberOfCapabilities(item.deviceId!)
-        let capacities: IDeviceCapacity[] = []
-        if (nums && nums > 0) {
-          for (let i = 0; i < nums; i++) {
-            let cap = rtcEngine?.getVideoDeviceManager().getCapability(item.deviceId!, i)
-            console.log('---------cap: ', cap)
-            if (cap !== undefined) {
-              capacities.push({
-                width: cap.width!,
-                height: cap.height!,
-                fps: cap.fps!,
-                modifyFps: cap.fps!
-              });
-            }
-          }
-        }
-        return {
-          deviceId: item.deviceId || '',
-          deviceName: item.deviceName || '',
-          capacity: capacities,
-        }
-      })
-      setDevices(newDevices)
-    }
-  }
-
-  const MediaPlayerListener: IMediaPlayerSourceObserver = {
-    onPlayerSourceStateChanged(state: MediaPlayerState, ec: MediaPlayerError) {
-      console.log('onPlayerSourceStateChanged', 'state', state, 'ec', ec);
-      switch (state) {
-        case MediaPlayerState.PlayerStateIdle:
-          break
-        case MediaPlayerState.PlayerStateOpening:
-          break
-        case MediaPlayerState.PlayerStateOpenCompleted:
-          console.log('------state is PlayerStateOpenCompleted')
-          mediaPlayer.current?.play()
-          //this.setState({ open: true });
-          // Auto play on this case
-          //setOpenPlayer(true)
-          //player.current?.play()
-          break
-      }
-    }
-  }
-
-  const createMediaPlayer = () => {
-    mediaPlayer.current = rtcEngine?.createMediaPlayer()!
-    mediaPlayer.current.registerPlayerSourceObserver(MediaPlayerListener)
-  }
-
-  const destroyMediaPlayer = () => {
-    if (!mediaPlayer.current) {
-      return;
-    }
-    rtcEngine?.destroyMediaPlayer(mediaPlayer.current);
-  }
-
-  const getCameraType = () => {
-    let index = -1;
-    let type = -1
-    if (cameraType.current["firstCamera"]) {
-      if (cameraType.current["secondCamera"]) {
-        index = cameraType.current["thirdCamera"] ? -1 : 3;
-      }
-      else {
-        index = 2;
-      }
-    }
-    else {
-      index = 1;
-    }
-    if (index == -1) {
-      message.info('最多开启3个摄像头');
-      return type;
-    }
-
-    if (index == 1) {
-      type = VideoSourceType.VideoSourceCameraPrimary
-    }
-    else if (index == 2) {
-      type = VideoSourceType.VideoSourceCameraSecondary
-    }
-    else {
-      type = VideoSourceType.VideoSourceCameraThird
-    }
-
-    return type;
-  }
-
-  const setCameraTypeStatus = (type, status) => {
-    //let obj = screenShareObj;
-    if (type == VideoSourceType.VideoSourceCameraPrimary) {
-      cameraType.current = { firstCamera: status, secondCamera: cameraType.current["secondCamera"], thirdCamera: cameraType.current["thirdCamera"] }
-    }
-    else if (type == VideoSourceType.VideoSourceCameraSecondary) {
-      cameraType.current = { firstCamera: cameraType.current["firstCamera"], secondCamera: status, thirdCamera: cameraType.current["thirdCamera"] }
-    }
-    else {
-      cameraType.current = { firstCamera: cameraType.current["firstCamera"], secondCamera: cameraType.current["secondCamera"], thirdCamera: status }
-    }
-  }
 
   const handleAddCamera = (selectIndex, selectCapIndex) => {
     console.log('---handleAddCamera', 'selectIndex: ', selectIndex, 'selectCapIndex: ', selectCapIndex)
@@ -543,24 +311,20 @@ const LivePreview: React.FC = () => {
     console.log('---configuration: ', configuration)
     let type = getCameraType()
     let ret = rtcEngine?.startCameraCapture(type, configuration)
-    console.log('-----ret: ', ret)
-    console.log('-----videoRef: ', videoRef.current)
-    let existIndex = transCodeSources.current.findIndex((item) => {
+    let existIndex = transCodeSources.findIndex((item) => {
       //return item.source.sourceType === type
       return item.id === configuration.deviceId
     })
     if (existIndex < 0) {
-      transCodeSources.current.push({
+      transCodeSources.push({
         id: configuration.deviceId!,
         source: {
           sourceType: type,
           x: 0,
           y: 0,
-          //width: devices[selectIndex].capacity[selectCapIndex].width,
-          //height: devices[selectIndex].capacity[selectCapIndex].height,
-          width: init_width,
-          height: init_height,
-          zOrder: transCodeSources.current.length + 2,
+          width: MIN_WIDTH,
+          height: MIN_HEIGHT,
+          zOrder: transCodeSources.length + 2,
           alpha: 1
         }
       })
@@ -570,144 +334,15 @@ const LivePreview: React.FC = () => {
     handlePreview()
   }
 
-  const getShareScreenType = () => {
-    let index = -1;
-    let type = -1
-    if (screenShareObj.current["firstScreen"]) {
-      if (screenShareObj.current["secondScreen"]) {
-        index = screenShareObj.current["thirdScreen"] ? -1 : 3;
-      }
-      else {
-        index = 2;
-      }
-    }
-    else {
-      index = 1;
-    }
-    if (index == -1) {
-      message.info('最多开启3个窗口分享');
-      return type;
-    }
-
-    if (index == 1) {
-      type = VideoSourceType.VideoSourceScreenPrimary
-    }
-    else if (index == 2) {
-      type = VideoSourceType.VideoSourceScreenSecondary
-    }
-    else {
-      type = VideoSourceType.VideoSourceScreenThird
-    }
-
-    return type;
-  }
-
-  const setScreenShareObjStatus = (type, status) => {
-    //let obj = screenShareObj;
-    if (type == VideoSourceType.VideoSourceScreenPrimary) {
-      screenShareObj.current = { firstScreen: status, secondScreen: screenShareObj.current["secondScreen"], thirdScreen: screenShareObj.current["thirdScreen"] }
-    }
-    else if (type == VideoSourceType.VideoSourceScreenSecondary) {
-      screenShareObj.current = { firstScreen: screenShareObj.current["firstScreen"], secondScreen: status, thirdScreen: screenShareObj.current["thirdScreen"] }
-    }
-    else {
-      screenShareObj.current = { firstScreen: screenShareObj.current["firstScreen"], secondScreen: screenShareObj.current["secondScreen"], thirdScreen: status }
-    }
-  }
-
-  const handleAddFullScreenSource = () => {
-    let capScreenSources = rtcEngine?.getScreenCaptureSources({ width: 1920, height: 1080 }, { width: 64, height: 64 }, true)
-    const fullScreenSource = capScreenSources?.find((item) => {
-      return item.type === ScreenCaptureSourceType.ScreencapturesourcetypeScreen
-    })
-    console.log('-----handleAddFullScreenSource capScreenSources: ', fullScreenSource)
-    if (fullScreenSource) {
-      let type = getShareScreenType();
-      if (type == -1) {
-        return
-      }
-      let ret = rtcEngine?.startScreenCaptureBySourceType(type, {
-        isCaptureWindow: false,
-        displayId: fullScreenSource.sourceId,
-        params: {
-          dimensions: { width: 1920, height: 1080 },
-          bitrate: 1000,
-          frameRate: 15,
-          captureMouseCursor: false,
-          windowFocus: false,
-          excludeWindowList: [],
-          excludeWindowCount: 0,
-        }
-      })
-      /*
-      let ret = rtcEngine?.startScreenCaptureByDisplayId(
-        fullScreenSource.sourceId,
-        { width: 0, height: 0, x: 0, y: 0 },
-        {
-          dimensions: { width: 1920, height: 1080 },
-          bitrate: 1000,
-          frameRate: 15,
-          captureMouseCursor: false,
-          windowFocus: false,
-          excludeWindowList: [],
-          excludeWindowCount: 0,
-        }
-      )*/
-      console.log('---startScreenCaptureByDisplayId ret: ', ret)
-      if (ret === 0) {
-        let existIndex = transCodeSources.current.findIndex((item) => {
-          //return item.source.sourceType === type
-          return item.id === fullScreenSource.sourceId
-        })
-        if (existIndex < 0) {
-          transCodeSources.current.push({
-            id: fullScreenSource.sourceId,
-            source: {
-              sourceType: type,
-              x: 0,
-              y: 0,
-              width: init_width,
-              height: init_height,
-              zOrder: transCodeSources.current.length + 2,
-              alpha: 1
-            }
-          })
-
-          setScreenShareObjStatus(type, true)
-        }
-        handlePreview()
-      } else {
-        console.error('Capture Screen is failed')
-      }
-    }
-  }
-
-  const handleAddScreenArea = () => {
-    let capScreenSources = rtcEngine?.getScreenCaptureSources({ width: 1920, height: 1080 }, { width: 64, height: 64 }, true)
-    const areaScreenSource = capScreenSources?.find((item) => {
-      return item.type === ScreenCaptureSourceType.ScreencapturesourcetypeScreen
-    })
-    console.log('----handleAddScreenArea source: ', areaScreenSource)
-    ipcRenderer.send('area-capture', areaScreenSource?.position)
-  }
-
   const addScreenAreaSource = (rect) => {
-    console.log('----addScreenAreaSource rect: ', rect)
-    let capScreenSources = rtcEngine?.getScreenCaptureSources({ width: 1920, height: 1080 }, { width: 64, height: 64 }, true)
-    const areaScreenSource = capScreenSources?.find((item) => {
-      return item.type === ScreenCaptureSourceType.ScreencapturesourcetypeScreen
-    })
-    // let ret1 = rtcEngine?.stopScreenCaptureBySourceType(VideoSourceType.VideoSourceScreenPrimary)
-    // console.log('---stop screen capture ret1: ',ret1)
-
+    const sources = getCapScreenSources()
     let type = getShareScreenType();
     if (type == -1) {
       return
     }
-
     let ret = rtcEngine?.startScreenCaptureBySourceType(type, {
       isCaptureWindow: false,
-      displayId: areaScreenSource!.sourceId,
+      displayId: sources[0]!.sourceId,
       regionRect: { width: rect.width, height: rect.height, x: rect.x, y: rect.y },
       params: {
         dimensions: { width: 1920, height: 1080 },
@@ -734,21 +369,21 @@ const LivePreview: React.FC = () => {
     // )
     console.log('---addScreenAreaSource ret: ', ret)
     if (ret === 0) {
-      let existIndex = transCodeSources.current.findIndex((item) => {
+      let existIndex = transCodeSources.findIndex((item) => {
         //区域捕捉的窗口是全屏分享的窗口会Id一致
         return item.source.sourceType === type
         //return item.id === areaScreenSource!.sourceId
       })
       if (existIndex < 0) {
-        transCodeSources.current.push({
-          id: areaScreenSource!.sourceId,
+        transCodeSources.push({
+          id: sources[0]!.sourceId!.sourceId,
           source: {
             sourceType: type,
             x: 0,
             y: 0,
-            width: init_width,
-            height: init_height,
-            zOrder: transCodeSources.current.length + 2,
+            width: MIN_WIDTH,
+            height: MIN_HEIGHT,
+            zOrder: transCodeSources.length + 2,
             alpha: 1
           }
         })
@@ -761,47 +396,6 @@ const LivePreview: React.FC = () => {
     }
 
   }
-
-  const handleAddWindowSource = () => {
-    let capScreenSources = rtcEngine?.getScreenCaptureSources({ width: 320, height: 160 }, { width: 80, height: 80 }, true)
-    console.log('------capScreenSources: ', capScreenSources, 'rtcEngine: ', rtcEngine)
-    const capWinSources = capScreenSources!.filter((item) => {
-      return item.type === ScreenCaptureSourceType.ScreencapturesourcetypeWindow
-    }).map(item => {
-      return {
-        id: item.sourceId,
-        sourceName: item.sourceName,
-        thumbImage: item.thumbImage,
-      }
-    })
-    if (capWinSources) {
-      setCapWindowSources(capWinSources)
-      setCapWinModalOpen(true)
-    }
-    console.log('----handleAddWindowSource capWinSources: ', capWinSources)
-  }
-
-  const handleAddScreenSource = () => {
-    let capScreenSources = rtcEngine?.getScreenCaptureSources({ width: 320, height: 160 }, { width: 80, height: 80 }, true)
-    console.log('------capScreenSources: ', capScreenSources, 'rtcEngine: ', rtcEngine)
-    const capWinSources = capScreenSources!.filter((item) => {
-      return item.type === ScreenCaptureSourceType.ScreencapturesourcetypeScreen
-    }).map(item => {
-      return {
-        id: item.sourceId,
-        sourceName: item.sourceName,
-        thumbImage: item.thumbImage,
-      }
-    })
-    if (capWinSources.length > 1) {
-      setCapScreenSources(capWinSources)
-      setCapScreenModalOpen(true)
-    }
-
-    console.log('----handleAddWindowSource capWinSources: ', capWinSources)
-    return capWinSources.length;
-  }
-
 
   const handleAddMediaSource = (srcUrl: string, type: string) => {
     console.log('-----handleAddMediaSource srcUrl: ', srcUrl, 'type: ', type)
@@ -818,47 +412,44 @@ const LivePreview: React.FC = () => {
       sourceType = VideoSourceType.VideoSourceMediaPlayer
     }
     if (type === 'image' || type === 'gif') {
-      let existIndex = transCodeSources.current.findIndex((item) => {
+      let existIndex = transCodeSources.findIndex((item) => {
         //return item.source.sourceType === type
         return item.id === srcUrl
       })
       if (existIndex < 0) {
-        transCodeSources.current.push({
+        transCodeSources.push({
           id: srcUrl,
           source: {
             sourceType,
             x: 0,
             y: 0,
-            width: init_width,
-            height: init_height,
-            zOrder: transCodeSources.current.length + 2,
+            width: MIN_WIDTH,
+            height: MIN_HEIGHT,
+            zOrder: transCodeSources.length + 2,
             alpha: 1,
             imageUrl: srcUrl
           }
         })
       }
     } else if (type === 'video') {
-      if (!mediaPlayer.current) {
-        createMediaPlayer()
-      }
-      let ret = mediaPlayer.current?.open(srcUrl, 0)
+      let ret = mediaPlayer?.open(srcUrl, 0)
       console.log('----mediaPlaye ret: ', ret)
-      let sourceId = mediaPlayer.current!.getMediaPlayerId();
+      let sourceId = mediaPlayer?.getMediaPlayerId();
       console.log('-----sourceId: ', sourceId)
-      let existIndex = transCodeSources.current.findIndex((item) => {
+      let existIndex = transCodeSources.findIndex((item) => {
         //return item.source.sourceType === type
-        return item.id === sourceId.toString()
+        return item.id === sourceId?.toString()
       })
       if (existIndex < 0) {
-        transCodeSources.current.push({
-          id: sourceId.toString(),
+        transCodeSources.push({
+          id: sourceId?.toString() || "",
           source: {
             sourceType,
             x: 0,
             y: 0,
-            width: init_width,
-            height: init_height,
-            zOrder: transCodeSources.current.length + 2,
+            width: MIN_WIDTH,
+            height: MIN_HEIGHT,
+            zOrder: transCodeSources.length + 2,
             alpha: 1,
             mediaPlayerId: sourceId
           }
@@ -869,7 +460,6 @@ const LivePreview: React.FC = () => {
   }
 
   const handleStopPreview = () => {
-    console.log('--------handleStopPreview isPreview: ', isPreview)
     if (isPreview) {
       let ret = rtcEngine?.stopLocalVideoTranscoder()
       ret = rtcEngine?.setupLocalVideo({
@@ -879,21 +469,18 @@ const LivePreview: React.FC = () => {
         mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
         renderMode: RenderModeType.RenderModeFit,
       });
-      transCodeSources.current = []
+      resetTransCodeSources()
       setPreview(false)
       while (videoRef.current?.firstChild) {
         videoRef.current?.removeChild(videoRef.current?.firstChild);
       }
       rtcEngine?.stopPreview()
-      console.log('--------stop localTranscoder ret: ', ret)
     }
   }
 
   const handlePreview = (newSources?: any) => {
-    console.log('------handlePreview source: ', transCodeSources.current)
-    console.log('----isPreview: ', isPreview)
     if (!isPreview) {
-      let ret = rtcEngine?.startLocalVideoTranscoder(calcTranscoderOptions(transCodeSources.current));
+      let ret = rtcEngine?.startLocalVideoTranscoder(calcTranscoderOptions(transCodeSources));
       console.log('-------startLocalVideoTranscoder ret: ', ret)
       ret = rtcEngine?.setupLocalVideo({
         sourceType: VideoSourceType.VideoSourceTranscoded,
@@ -904,29 +491,26 @@ const LivePreview: React.FC = () => {
       });
       console.log('--------setupLocalVideo ret: ', ret)
       setPreview(true)
-    }
-    else {
+    } else {
       let ret
       if (newSources) {
         ret = rtcEngine?.updateLocalTranscoderConfiguration(calcTranscoderOptions(newSources))
       } else {
-        ret = rtcEngine?.updateLocalTranscoderConfiguration(calcTranscoderOptions(transCodeSources.current))
+        ret = rtcEngine?.updateLocalTranscoderConfiguration(calcTranscoderOptions(transCodeSources))
       }
       console.log('---updateLocalTranscoderConfiguration ret: ', ret)
-
     }
   }
 
-  const calcTranscoderOptions = (sources: sourceType[]) => {
+  const calcTranscoderOptions = (sources: SourceType[]) => {
     let videoInputStreams = sources.map(s => {
       Object.assign({ connectionId: 0 }, s.source)
       return s.source
     })
     console.log('---videoInputStreams: ', videoInputStreams)
     //dimensions 参数设置输出的画面横竖屏
-    console.log('-------calcTranscoderOptions isHorizontalRef: ', isHorizontalRef)
     let videoOutputConfigurationobj = {
-      dimensions: isHorizontalRef.current ? { width: 1280, height: 720 } : { width: 720, height: 1280 },
+      dimensions: isHorizontal ? { width: 1280, height: 720 } : { width: 720, height: 1280 },
       frameRate: 25,
       bitrate: 0,
       minBitrate: -1,
@@ -934,7 +518,6 @@ const LivePreview: React.FC = () => {
       degradationPreference: 0,
       mirrorMode: 0
     }
-
     return {
       streamCount: sources.length,
       videoInputStreams: videoInputStreams,
@@ -943,30 +526,15 @@ const LivePreview: React.FC = () => {
   }
 
   const updateSelectedDeviceInfo = (data) => {
-    setDeviceIndex(data.selectdDevice)
+    setDeviceIndex(data.selectedDevice)
     setCapacityIndex(data.selectCap)
-    setDevices((preDevices) => {
-      const newDevices = [...preDevices]
-      const device = newDevices[data.selectdDevice]
-      if (device) {
-        const capacity = device.capacity[data.selectCap]
-        if (capacity) {
-          capacity.modifyFps = parseInt(data.fps)
-        }
-      }
-      console.log(newDevices)
-      return newDevices
-    })
+    updateDevices(data)
   }
 
   const onLayoutClick = (e) => {
-    console.log('-------id: ', e.target.id)
-    if (e.target.id === 'horizontal' && !isHorizontal) {
-      console.log('setIsHorizontal true')
+    if (e.target.id === 'horizontal') {
       setIsHorizontal(true)
-    }
-    if (e.target.id === 'vertical') {
-      console.log('setIsHorizontal false')
+    } else if (e.target.id === 'vertical') {
       setIsHorizontal(false)
     }
   }
@@ -984,7 +552,7 @@ const LivePreview: React.FC = () => {
   const handleCameraModalOk = (data) => {
     console.log('-----handleCameraModalOk: ', data)
     updateSelectedDeviceInfo(data)
-    handleAddCamera(data.selectdDevice, data.selectCap)
+    handleAddCamera(data.selectedDevice, data.selectCap)
     setIsCameraModalOpen(false)
   }
 
@@ -996,25 +564,14 @@ const LivePreview: React.FC = () => {
     setVirtualBgModalOpen(false)
   }
 
-  const handleCapWinModalCancel = () => {
-    setCapWinModalOpen(false)
-  }
-
-  const handleCapScreenModalCancel = () => {
-    setCapScreenModalOpen(false)
-  }
-
-  const handleSelectCaptureWinSource = (selectCapWin) => {
-    console.log('-----handleSelectCaptureWInSource selectCapWin: ', selectCapWin)
-
+  const handleSelectSource = (source) => {
     let type = getShareScreenType();
     if (type == -1) {
       return
     }
-
     let ret = rtcEngine?.startScreenCaptureBySourceType(type, {
       isCaptureWindow: true,
-      windowId: selectCapWin.id,
+      windowId: source.id,
       params: {
         dimensions: { width: 1920, height: 1080 },
         bitrate: 1000,
@@ -1025,41 +582,27 @@ const LivePreview: React.FC = () => {
         excludeWindowCount: 0,
       }
     })
-    // let ret = rtcEngine?.startScreenCaptureByWindowId(
-    //   selectCapWin.id,
-    //   { width: 0, height: 0, x: 0, y: 0 },
-    //   {
-    //     dimensions: { width: 1920, height: 1080 },
-    //     bitrate: 1000,
-    //     frameRate: 15,
-    //     captureMouseCursor: false,
-    //     windowFocus: false,
-    //     excludeWindowList: [],
-    //     excludeWindowCount: 0,
-    //   }
-    // )
     console.log('------handleSelectCaptureWinSource ret: ', ret)
     if (ret == 0) {
       let newSource = {
         sourceType: type,
         x: 0,
         y: 0,
-        width: init_width,
-        height: init_width,
-        zOrder: transCodeSources.current.length + 2,
+        width: MIN_WIDTH,
+        height: MIN_WIDTH,
+        zOrder: transCodeSources.length + 2,
         alpha: 1
       }
-      let existIndex = transCodeSources.current.findIndex((item) => {
-        return item.id === selectCapWin.id
+      let existIndex = transCodeSources.findIndex((item) => {
+        return item.id === source.id
       })
       if (existIndex >= 0) {
-        transCodeSources.current[existIndex].source = newSource
+        transCodeSources[existIndex].source = newSource
       } else {
-        transCodeSources.current.push({
-          id: selectCapWin.id,
+        transCodeSources.push({
+          id: source.id,
           source: newSource
         })
-
         setScreenShareObjStatus(type, true)
       }
       handlePreview()
@@ -1067,160 +610,9 @@ const LivePreview: React.FC = () => {
       console.error('Transcode window failed!')
     }
     setCapWinModalOpen(false)
-  }
-
-  const handleSelectCaptureScreenSource = (selectCapWin) => {
-    console.log('-----handleSelectCaptureWInSource selectCapWin: ', selectCapWin)
-
-    let type = getShareScreenType();
-    if (type == -1) {
-      return
-    }
-
-    let ret = rtcEngine?.startScreenCaptureBySourceType(type, {
-      isCaptureWindow: false,
-      displayId: selectCapWin.id,
-      params: {
-        dimensions: { width: 1920, height: 1080 },
-        bitrate: 1000,
-        frameRate: 15,
-        captureMouseCursor: false,
-        windowFocus: false,
-        excludeWindowList: [],
-        excludeWindowCount: 0,
-      }
-    })
-
-    console.log('------handleSelectCaptureWinSource ret: ', ret)
-    if (ret == 0) {
-      let newSource = {
-        sourceType: type,
-        x: 0,
-        y: 0,
-        width: init_width,
-        height: init_width,
-        zOrder: transCodeSources.current.length + 2,
-        alpha: 1
-      }
-      let existIndex = transCodeSources.current.findIndex((item) => {
-        return item.id === selectCapWin.id
-      })
-      if (existIndex >= 0) {
-        transCodeSources.current[existIndex].source = newSource
-      } else {
-        transCodeSources.current.push({
-          id: selectCapWin.id,
-          source: newSource
-        })
-
-        setScreenShareObjStatus(type, true)
-      }
-      handlePreview()
-    } else {
-      console.error('Transcode window failed!')
-    }
     setCapScreenModalOpen(false)
   }
 
-  const handleEnableGreenScreen = (isEnable) => {
-    setEnableGreenScreen(isEnable)
-  }
-
-  const captureMenuOpenChange = (value) => {
-    console.log('----handleOnOpenChange value: ', value)
-    setCaptureMenuOpen(value)
-  }
-
-  const mediaMenuOpenChange = (value) => {
-    console.log('----mediaMenuOpenChange value: ', value)
-    setMediaMenuOpen(value)
-  }
-
-  const handleCaptureMenuClick = (e) => {
-    checkAppId(appId)
-    console.log('-----handleCaptureMenuClick key: ', e.key)
-    setCaptureMenuOpen(false)
-    if (e.key === 'fullscreen') {
-      //handleAddFullScreenSource()
-      if (handleAddScreenSource() == 1)
-        handleAddFullScreenSource()
-    } else if (e.key === 'winCapture') {
-      handleAddWindowSource()
-    } else if (e.key === 'areaCapture') {
-      //ipcRenderer.send('area-capture')
-      handleAddScreenArea()
-    }
-  }
-
-  const handleMediaMenuClick = (e) => {
-    checkAppId(appId)
-    console.log('-----handleMediaMenuClick key: ', e.key)
-    setMediaMenuOpen(false)
-    ipcRenderer.send('open-select-file-dialog', e.key)
-  }
-
-  const captureMenu = (
-    <Menu onClick={handleCaptureMenuClick} items={[
-      { key: 'winCapture', label: '窗口捕获' },
-      { key: 'fullscreen', label: '全屏捕获' },
-      { key: 'areaCapture', label: '区域捕获' },
-    ]} />
-  )
-
-  const mediaMenu = (
-    <Menu onClick={handleMediaMenuClick} items={
-      [
-        { key: 'image', label: '静态图片(jpg/png)' },
-        { key: 'gif', label: '动态图片(gif)' },
-        { key: 'video', label: '视频(推荐使用声网mpk播放)' }
-      ]
-    } />
-  )
-
-  const renderOptListItem = (item) => {
-    if (item.id === 'camera' || item.id === 'virtual') {
-      return (
-        <div key={item.id} id={item.id} className={styles.item} onClick={handleOptClick}>
-          <img src={`file://${item.imgUrl}`} alt="" style={{ pointerEvents: 'none' }} />
-          <span style={{ pointerEvents: 'none' }}>{item.title}</span>
-        </div>
-      )
-    } else if (item.id === 'capture') {
-      return (
-        <div key={item.id} id={item.id} className={styles.item}>
-          <img src={`file://${item.imgUrl}`} alt="" style={{ pointerEvents: 'none' }} />
-          <div className={styles.desc}>
-            <Dropdown
-              trigger={['click']}
-              onOpenChange={captureMenuOpenChange}
-              overlay={captureMenu}>
-              <div>
-                <span className={styles.title}>{item.title}</span>
-                {isCaptureMenuOpen ? <UpOutlined className={styles.arrow} /> : <DownOutlined className={styles.arrow} />}
-              </div>
-            </Dropdown>
-          </div>
-        </div>
-      )
-    } else if (item.id === 'media') {
-      return (
-        <div key={item.id} id={item.id} className={styles.item}>
-          <img src={`file://${item.imgUrl}`} alt="" style={{ pointerEvents: 'none' }} />
-          <div className={styles.desc}>
-            <Dropdown
-              trigger={['click']}
-              onOpenChange={mediaMenuOpenChange}
-              overlay={mediaMenu}>
-              <div>
-                <span className={styles.title}>{item.title}</span>
-                {isMediaMenuOpen ? <UpOutlined className={styles.arrow} /> : <DownOutlined className={styles.arrow} />}
-              </div>
-            </Dropdown>
-          </div>
-        </div>
-      )
-    }
-  }
 
   return (
     <div className={styles.livePreview}>
@@ -1236,17 +628,20 @@ const LivePreview: React.FC = () => {
         </div>
       </div>
       <div className={isHorizontal ? styles.previewRow : styles.previewColum}>
-        <div className={styles.area} id="video-wapper" ref={videoRef}></div>
+        <div className={styles.area} ref={videoRef}></div>
+        <OptionsView
+          setCapWinModalOpen={setCapWinModalOpen}
+          setCapScreenModalOpen={setCapScreenModalOpen}
+          handleOptClick={handleOptClick}
+          handlePreview={handlePreview}></OptionsView>
         {
-          (checkIndex >= 0) && (<SelectBox {...boxRect} resizingCallBack={updateResize} handleDelete={handleDelete} handleMoveDown={handleMoveDown} handleMoveUp={handleMoveUp} />)
+          checkIndex >= 0 &&
+          <SelectBox {...boxRect}
+            resizingCallBack={updateResize}
+            handleDelete={handleDelete}
+            handleMoveDown={handleMoveDown}
+            handleMoveUp={handleMoveUp} />
         }
-        <div className={styles.options}>
-          {
-            optConfig.map(item => {
-              return renderOptListItem(item)
-            })
-          }
-        </div>
       </div>
       {isCameraModalOpen && (
         <CameraModal
@@ -1262,21 +657,23 @@ const LivePreview: React.FC = () => {
           onCancel={handleVirtualBgModalCancal}
           isHorizontal={isHorizontal}
           enableGreenScreen={enableGreenScreen}
-          onGreenScreenCb={handleEnableGreenScreen}
+          onGreenScreenCb={isEnable => setEnableGreenScreen(isEnable)}
           isOpen={isVirtualBgModalOpen} />
       )}
+      {/* 窗口分享 */}
       {isCapWinModalOpen && (
         <CaptureWinModal
-          onCancel={handleCapWinModalCancel}
-          onSelect={handleSelectCaptureWinSource}
-          captureWinSources={capWindowSources}
+          type="window"
+          onCancel={() => setCapWinModalOpen(false)}
+          onSelect={handleSelectSource}
           isOpen={isCapWinModalOpen} />
       )}
+      {/* 整个屏幕分享 */}
       {isCapScreenModalOpen && (
         <CaptureWinModal
-          onCancel={handleCapScreenModalCancel}
-          onSelect={handleSelectCaptureScreenSource}
-          captureWinSources={capScreenSources}
+          type="screen"
+          onCancel={() => setCapScreenModalOpen(false)}
+          onSelect={handleSelectSource}
           isOpen={isCapScreenModalOpen} />
       )}
     </div>

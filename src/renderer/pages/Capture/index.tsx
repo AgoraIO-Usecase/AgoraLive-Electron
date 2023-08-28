@@ -99,8 +99,11 @@ const Capture: React.FC = () => {
     }
   }
   return (
-    <div ref={container} className={styles.capture} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
-
+    <div ref={container}
+      className={styles.capture}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}>
     </div>
   )
 }

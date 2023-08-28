@@ -15,7 +15,6 @@ const settingIcon = getResourcePath('appSetting.png')
 const localUid = 0
 
 const Setting: React.FC = () => {
-  console.log('----render setting')
   const [isJoinChannel, setJoinState] = useState(false)
   const [disableVoice, setDisableVoice] = useState(false)
   const [disableMicro, setDisableMicro] = useState(false)
@@ -106,8 +105,6 @@ const Setting: React.FC = () => {
       rtcEngine?.leaveChannel()
     }
   }
-
-
 
   const onVideoConfigChangeCb = () => {
     setIsOpen(false)

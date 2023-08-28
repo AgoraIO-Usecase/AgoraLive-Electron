@@ -1,60 +1,60 @@
-import React from 'react'
+import { useMemo } from 'react'
 import { Divider, Image, Modal } from 'antd'
 import { rgbImageBufferToBase64 } from '../../utils/base64'
 import styles from './captureWinModal.scss'
-import { 
-  ThumbImageBuffer
-} from 'agora-electron-sdk'
+import { ScreenCaptureSourceInfo } from "agora-electron-sdk"
+import { useScreen } from "../../utils/hooks"
 
 interface IProps {
   isOpen: boolean,
   onCancel: () => void
-  onSelect: (selectedWin: CaptureWindow) => void
-  captureWinSources: CaptureWindow[]
+  onSelect: (selectedWin: ScreenCaptureSourceInfo) => void,
+  type: "window" | "screen"
 }
 
-interface CaptureWindow {
-  id: string,
-  sourceName: string,
-  thumbImage: ThumbImageBuffer,
-}
+const CaptureWinModal: React.FC<IProps> = ({ isOpen, onCancel, onSelect, type }) => {
+  const { getCapWinSources, getCapScreenSources } = useScreen()
+  const sources = useMemo(() => {
+    if (type == 'screen') {
+      return getCapScreenSources()
+    } else if (type == "window") {
+      return getCapWinSources()
+    } else {
+      return []
+    }
+  }, [type])
 
-const CaptureWinModal: React.FC<IProps> = ({isOpen, onCancel, onSelect, captureWinSources}) => {
-  console.log(`------CaptureWinModal--------`)
+  console.log("sources", sources)
+
   const handleOnSelectClick = (e) => {
-    console.log('----handleOnSelectClick: ', e.target.id)
-    const selectedSource = captureWinSources.find((item) => {
-      return item.id == e.target.id
+    const selectedSource = sources?.find((item) => {
+      return item?.sourceId == e.target.id
     })
-    console.log('----selectedSource: ', selectedSource)
     if (selectedSource) {
       onSelect(selectedSource)
     }
   }
-  
+
   return (
     <Modal
-     open={isOpen}
-     title='窗口列表'
-     footer={null}
-     width={800}
-     onCancel={onCancel}
+      open={isOpen}
+      title='窗口列表'
+      footer={null}
+      width={800}
+      onCancel={onCancel}
     >
       <div className={styles.content}>
-       {
-          captureWinSources.length <=0 ? (
+        {
+          sources.length ? sources.map(item => {
+            return (
+              <div id={item?.sourceId} onClick={handleOnSelectClick} key={item.sourceId} className={styles.card}>
+                <img src={rgbImageBufferToBase64(item.thumbImage)} />
+                <div>{item.sourceName}</div>
+              </div>
+            )
+          }) :
             <div>暂无数据</div>
-          ): (
-            captureWinSources.map(item => {
-              return (
-                <div id={item.id} onClick={handleOnSelectClick} key={item.id} className={styles.card}>
-                  <img src={rgbImageBufferToBase64(item.thumbImage)} />
-                  <div>{item.sourceName}</div>
-                </div>
-              )
-            })
-          )
-       }
+        }
       </div>
     </Modal>
   )
