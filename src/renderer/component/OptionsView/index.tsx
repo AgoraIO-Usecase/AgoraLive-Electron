@@ -1,23 +1,13 @@
 import React, { useState, useRef, useEffect, useContext } from "react"
-import { getResourcePath, checkAppId, getShareScreenType, setScreenShareObjStatus, transCodeSources } from '../../utils/index'
+import { getResourcePath, checkAppId, getShareScreenType, setScreenShareObjStatus } from '../../utils/index'
 import { message, Dropdown, Menu } from 'antd'
-import { useScreen } from "../../utils/hooks"
+import { useEngine, useScreen } from "../../utils/hooks"
 import RtcEngineContext from "../../context/rtcEngineContext"
 import { DownOutlined, UpOutlined } from '@ant-design/icons'
 import { app, ipcRenderer } from 'electron'
 import styles from '../LivePreview/livePreview.scss'
-import {
-  CameraCapturerConfiguration,
-  VideoSourceType,
-  VideoMirrorModeType,
-  RenderModeType,
-  IMediaPlayer,
-  IMediaPlayerSourceObserver,
-  MediaPlayerState,
-  MediaPlayerError,
-  ScreenCaptureSourceType
-} from 'agora-electron-sdk'
-import { MIN_HEIGHT, MIN_WIDTH, MAX_HEIGHT, MAX_WIDTH } from "../../utils/constant"
+import { MIN_HEIGHT, MIN_WIDTH } from "../../utils/constant"
+import { useTransCodeSources } from "../../utils/hooks"
 
 
 const optConfig = [
@@ -58,10 +48,11 @@ const OptionsView = ({
   setCapWinModalOpen,
   setCapScreenModalOpen
 }: OptionsViewProps) => {
-  const { appId, uid, rtcEngine } = useContext(RtcEngineContext)
-  const { getCapScreenSources } = useScreen()
+  const { appId, uid, } = useContext(RtcEngineContext)
+  const { getCapScreenSources, startScreenCaptureBySourceType } = useScreen()
   const [isCaptureMenuOpen, setCaptureMenuOpen] = useState(false)
   const [isMediaMenuOpen, setMediaMenuOpen] = useState(false)
+  const { setTransCodeSources, getTransCodeSources } = useTransCodeSources()
 
   const captureMenuOpenChange = (value) => {
     setCaptureMenuOpen(value)
@@ -83,58 +74,41 @@ const OptionsView = ({
     if (type == -1) {
       return
     }
-    let ret = rtcEngine?.startScreenCaptureBySourceType(type, {
+    startScreenCaptureBySourceType(type, {
       isCaptureWindow: false,
       displayId: fullScreenSource.sourceId,
       params: {
         dimensions: { width: 1920, height: 1080 },
         bitrate: 1000,
-        frameRate: 15,
+        frameRate: 25,
         captureMouseCursor: false,
         windowFocus: false,
         excludeWindowList: [],
         excludeWindowCount: 0,
       }
     })
-    // /*
-    // let ret = rtcEngine?.startScreenCaptureByDisplayId(
-    //   fullScreenSource.sourceId,
-    //   { width: 0, height: 0, x: 0, y: 0 },
-    //   {
-    //     dimensions: { width: 1920, height: 1080 },
-    //     bitrate: 1000,
-    //     frameRate: 15,
-    //     captureMouseCursor: false,
-    //     windowFocus: false,
-    //     excludeWindowList: [],
-    //     excludeWindowCount: 0,
-    //   }
-    // )*/
-    console.log('---startScreenCaptureByDisplayId ret: ', ret)
-    if (ret === 0) {
-      let existIndex = transCodeSources.findIndex((item) => {
-        //return item.source.sourceType === type
-        return item.id === fullScreenSource.sourceId
+    const transCodeSources = getTransCodeSources()
+    let existIndex = transCodeSources.findIndex((item) => {
+      //return item.source.sourceType === type
+      return item.id === fullScreenSource.sourceId
+    })
+    if (existIndex < 0) {
+      transCodeSources.push({
+        id: fullScreenSource.sourceId,
+        source: {
+          sourceType: type,
+          x: 0,
+          y: 0,
+          width: MIN_WIDTH,
+          height: MIN_HEIGHT,
+          zOrder: transCodeSources.length + 2,
+          alpha: 1
+        }
       })
-      if (existIndex < 0) {
-        transCodeSources.push({
-          id: fullScreenSource.sourceId,
-          source: {
-            sourceType: type,
-            x: 0,
-            y: 0,
-            width: MIN_WIDTH,
-            height: MIN_HEIGHT,
-            zOrder: transCodeSources.length + 2,
-            alpha: 1
-          }
-        })
-        setScreenShareObjStatus(type, true)
-      }
-      handlePreview()
-    } else {
-      console.error('Capture Screen is failed')
+      setTransCodeSources(transCodeSources)
+      setScreenShareObjStatus(type, true)
     }
+    handlePreview()
     ipcRenderer.send('area-capture', fullScreenSource?.position)
   }
 

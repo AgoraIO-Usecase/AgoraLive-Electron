@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from "react"
 import styles from './setting.scss'
 import { Divider, Slider, Input, Button } from 'antd'
 import { getResourcePath, checkAppId } from '../../utils/index'
+import { useEngine } from "../../utils/hooks"
 import { ChannelProfileType, IRtcEngineEventHandler, ClientRoleType } from 'agora-electron-sdk'
 import RtcEngineContext from "../../context/rtcEngineContext"
 import VideoConfigModal from '../VideoConfigModal'
@@ -15,7 +16,7 @@ const settingIcon = getResourcePath('appSetting.png')
 const localUid = 0
 
 const Setting: React.FC = () => {
-  const [isJoinChannel, setJoinState] = useState(false)
+  const [joined, setJoined] = useState(false)
   const [disableVoice, setDisableVoice] = useState(false)
   const [disableMicro, setDisableMicro] = useState(false)
   const [voiceVolume, setVoiceNum] = useState(50)
@@ -23,8 +24,8 @@ const Setting: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
   const voiceVolumeRef = useRef(voiceVolume)
   const microVolumeRef = useRef(microVolume)
-  const { rtcEngine, appId, setAppId, channel, setChannel, sdkLogPath } = useContext(RtcEngineContext)
-
+  const { appId, setAppId, channel, setChannel } = useContext(RtcEngineContext)
+  const { rtcEngine, joinChannel, leaveChannel } = useEngine()
 
 
   const onChannelChange = (e) => {
@@ -76,20 +77,15 @@ const Setting: React.FC = () => {
   }
 
   const handleJoinChannel = () => {
-    console.log('handleJoinChannel: ', channel)
     checkAppId(appId)
     if (channel.trim() === '') {
       message.info('频道号不为空，请输入频道号')
       return
     }
-
-
-    if (!isJoinChannel) {
+    if (!joined) {
       rtcEngine?.setChannelProfile(1)
-      //  rtcEngine?.setClientRole(ClientRoleType.ClientRoleBroadcaster)
-      //  rtcEngine?.registerMediaMetadataObserver();
       rtcEngine?.setAudioProfile(0, 3)
-      let ret = rtcEngine?.joinChannel('', channel, localUid, {
+      joinChannel('', channel, localUid, {
         // Make myself as the broadcaster to send stream to remote
         clientRoleType: ClientRoleType.ClientRoleBroadcaster,
         publishMicrophoneTrack: true,
@@ -97,18 +93,14 @@ const Setting: React.FC = () => {
         publishTrancodedVideoTrack: true,
         autoSubscribeAudio: true,
         autoSubscribeVideo: true,
-      });
-
-      console.log(`--------join channel: ${ret},${channel}`)
+      })
+    } else {
+      leaveChannel()
     }
-    else {
-      rtcEngine?.leaveChannel()
-    }
+    setJoined(!joined)
   }
 
-  const onVideoConfigChangeCb = () => {
-    setIsOpen(false)
-  }
+
 
   const onSettingClick = () => {
     if (!appId) {
@@ -153,14 +145,14 @@ const Setting: React.FC = () => {
       <Divider className={styles.divider} />
       <div className={styles.settingInput}>
         <div className={styles.inputArea}>
-          <Input disabled={isJoinChannel} className={styles.customInput} placeholder="App ID" value={appId} onChange={onAppIdChange} />
-          <Input disabled={isJoinChannel} className={styles.customInput} placeholder="频道号" value={channel} onChange={onChannelChange} />
+          <Input disabled={joined} className={styles.customInput} placeholder="App ID" value={appId} onChange={onAppIdChange} />
+          <Input disabled={joined} className={styles.customInput} placeholder="频道号" value={channel} onChange={onChannelChange} />
         </div>
         <div>
-          <Button onClick={handleJoinChannel} type="primary"> {isJoinChannel ? '结束直播' : '立即开播'}</Button>
+          <Button onClick={handleJoinChannel} type="primary"> {joined ? '结束直播' : '立即开播'}</Button>
         </div>
       </div>
-      {isOpen && (<VideoConfigModal isOpen={isOpen} onChange={onVideoConfigChangeCb} />)}
+      {isOpen && (<VideoConfigModal isOpen={isOpen} onCancel={() => setIsOpen(false)} />)}
     </div>
   )
 }

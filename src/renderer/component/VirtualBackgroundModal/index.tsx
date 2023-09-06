@@ -1,10 +1,10 @@
 import React, { useState, useContext } from 'react'
 import { Modal, Button, Switch } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
-import { BackgroundSourceType, SegModelType , BackgroundBlurDegree} from 'agora-electron-sdk'
-import styles from './virtualBackgroundModal.scss'
-import RtcEngineContext, { IAppContext } from "../../context/rtcEngineContext"
+import { BackgroundSourceType, SegModelType, BackgroundBlurDegree } from 'agora-electron-sdk'
+import { useEngine } from "../../utils/hooks"
 import { getResourcePath } from '../../utils/index'
+import styles from './virtualBackgroundModal.scss'
 
 interface IProps {
   isOpen: boolean
@@ -14,32 +14,30 @@ interface IProps {
   onCancel: () => void
 }
 
-const VirtualBackgroundModal: React.FC<IProps> = ({ isOpen, enableGreenScreen,isHorizontal, onGreenScreenCb, onCancel }) => {
-  //const [enableGreenScreen, setEnableGreenScreen] = useState(false)
-  const { rtcEngine } = useContext(RtcEngineContext) as IAppContext
+const VirtualBackgroundModal: React.FC<IProps> = ({ isOpen, enableGreenScreen, isHorizontal, onGreenScreenCb, onCancel }) => {
+  const { rtcEngine } = useEngine()
   const backgroundImg = isHorizontal ? getResourcePath('background.png') : getResourcePath('background_portrait.png')
-  console.log('-----backgroundImg: ',backgroundImg)
 
   const enableSegModelGreen = () => {
     let segproperty = {
       modelType: SegModelType.SegModelGreen,
       greenCapacity: 0.5
     }
-    let ret = rtcEngine?.enableVirtualBackground(true, {},segproperty)
-    console.log('---enableSegModelGreen ret: ',ret)
+    let ret = rtcEngine?.enableVirtualBackground(true, {}, segproperty)
+    console.log('---enableSegModelGreen ret: ', ret)
   }
 
   const disableSegModelGreen = () => {
     let segproperty = {
       modelType: SegModelType.SegModelGreen
     }
-    let ret = rtcEngine?.enableVirtualBackground(false, {},segproperty)
-    console.log('---disableSegModelGreen ret: ',ret)
+    let ret = rtcEngine?.enableVirtualBackground(false, {}, segproperty)
+    console.log('---disableSegModelGreen ret: ', ret)
   }
 
   const disableVirtualBackground = () => {
-    let ret = rtcEngine?.enableVirtualBackground(false, {},{})
-    console.log('---disableVirtualBackground ret: ',ret)
+    let ret = rtcEngine?.enableVirtualBackground(false, {}, {})
+    console.log('---disableVirtualBackground ret: ', ret)
     onCancel()
   }
 
@@ -48,8 +46,8 @@ const VirtualBackgroundModal: React.FC<IProps> = ({ isOpen, enableGreenScreen,is
     let ret = rtcEngine?.enableVirtualBackground(true, {
       background_source_type: BackgroundSourceType.BackgroundBlur,
       blur_degree: BackgroundBlurDegree.BlurDegreeHigh
-    },{})
-    console.log('---handelOnBackgroundBlur ret: ',ret)
+    }, {})
+    console.log('---handelOnBackgroundBlur ret: ', ret)
   }
 
   const handleOnBackgroundImg = () => {
@@ -57,8 +55,8 @@ const VirtualBackgroundModal: React.FC<IProps> = ({ isOpen, enableGreenScreen,is
     let ret = rtcEngine?.enableVirtualBackground(true, {
       background_source_type: BackgroundSourceType.BackgroundImg,
       source: backgroundImg
-    },{})
-    console.log('---handleOnBackgroundImg ret: ',ret)
+    }, {})
+    console.log('---handleOnBackgroundImg ret: ', ret)
   }
 
   const onSegModelGreenChange = (isEnable) => {

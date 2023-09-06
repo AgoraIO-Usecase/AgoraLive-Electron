@@ -1,10 +1,11 @@
 import { useContext, useState, useRef } from "react"
 import RtcEngineContext from "../context/rtcEngineContext"
-import {
+import createAgoraRtcEngine, {
   CameraCapturerConfiguration,
   VideoSourceType,
   VideoMirrorModeType,
   RenderModeType,
+  VideoEncoderConfiguration,
   IMediaPlayer,
   IMediaPlayerSourceObserver,
   MediaPlayerState,
@@ -12,44 +13,48 @@ import {
   ScreenCaptureSourceType,
   ChannelProfileType,
   IRtcEngineEventHandler,
-  ScreenCaptureSourceInfo
+  ScreenCaptureSourceInfo,
+  ScreenCaptureConfiguration,
+  ChannelMediaOptions,
+  IRtcEngineEx
 } from 'agora-electron-sdk'
 import { IDevice, SourceType, IDeviceCapacity } from "../types"
 import { message } from "antd"
 
 export const useEngine = () => {
-  const { rtcEngine, appId, sdkLogPath } = useContext(RtcEngineContext)
+  const { appId, sdkLogPath } = useContext(RtcEngineContext)
   const [devices, setDevices] = useState<IDevice[]>([])
+  const rtcEngine = useRef<IRtcEngineEx>(createAgoraRtcEngine())
 
   const initEngine = () => {
-    rtcEngine?.initialize({
+    rtcEngine.current.initialize({
       appId: appId,
       logConfig: { filePath: sdkLogPath },
       channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
     })
-    rtcEngine?.enableExtension(
+    rtcEngine.current.enableExtension(
       'agora_video_filters_segmentation',
       'portrait_segmentation',
       true
     )
-    rtcEngine?.registerEventHandler(eventHandles)
+    rtcEngine.current.registerEventHandler(eventHandles)
     initDevices()
   }
 
   const destoryEngine = () => {
-    rtcEngine?.unregisterEventHandler(eventHandles);
-    rtcEngine?.release()
+    rtcEngine.current.unregisterEventHandler(eventHandles);
+    rtcEngine.current.release()
   }
 
   const initDevices = () => {
-    const videoDevices = rtcEngine?.getVideoDeviceManager().enumerateVideoDevices()
+    const videoDevices = rtcEngine.current.getVideoDeviceManager().enumerateVideoDevices()
     if (videoDevices && videoDevices.length > 0) {
       const list = videoDevices.map((item) => {
-        let num = rtcEngine?.getVideoDeviceManager().numberOfCapabilities(item.deviceId!)
+        let num = rtcEngine.current.getVideoDeviceManager().numberOfCapabilities(item.deviceId!)
         let capacities: IDeviceCapacity[] = []
         if (num && num > 0) {
           for (let i = 0; i < num; i++) {
-            let cap = rtcEngine?.getVideoDeviceManager().getCapability(item.deviceId!, i)
+            let cap = rtcEngine.current.getVideoDeviceManager().getCapability(item.deviceId!, i)
             if (cap !== undefined) {
               capacities.push({
                 width: cap.width!,
@@ -118,12 +123,43 @@ export const useEngine = () => {
     })
   }
 
+  const setVideoEncoderConfiguration = (config: VideoEncoderConfiguration) => {
+    const res = rtcEngine.current.setVideoEncoderConfiguration(config)
+    if (res !== 0) {
+      const msg = `setVideoEncoderConfiguration failed, error code: ${res}`
+      throw new Error(msg)
+    }
+  }
+
+  const joinChannel = (token: string, channelId: string, uid: number, options: ChannelMediaOptions) => {
+    const res = rtcEngine.current.joinChannel(token, channelId, uid, options)
+    if (res !== 0) {
+      const msg = `joinChannel failed, error code: ${res}`
+      throw new Error(msg)
+    } else {
+      message.success("joinChannel success")
+    }
+  }
+
+  const leaveChannel = () => {
+    const res = rtcEngine.current.leaveChannel()
+    if (res !== 0) {
+      const msg = `leaveChannel failed, error code: ${res}`
+      throw new Error(msg)
+    } else {
+      message.success("leaveChannel success")
+    }
+  }
+
   return {
-    rtcEngine,
+    rtcEngine: rtcEngine.current,
     initEngine,
     destoryEngine,
     devices,
-    updateDevices
+    updateDevices,
+    setVideoEncoderConfiguration,
+    joinChannel,
+    leaveChannel
   }
 }
 
@@ -156,7 +192,7 @@ export const useMediaPlayer = () => {
     if (mediaPlayer.current) {
       return
     }
-    mediaPlayer.current = rtcEngine?.createMediaPlayer()!
+    mediaPlayer.current = rtcEngine?.createMediaPlayer()
     mediaPlayer.current.registerPlayerSourceObserver(mediaPlayerListener)
   }
 
@@ -165,13 +201,14 @@ export const useMediaPlayer = () => {
       return;
     }
     rtcEngine?.destroyMediaPlayer(mediaPlayer.current);
+    mediaPlayer.current = null
   }
 
 
   return {
     createMediaPlayer,
     destroyMediaPlayer,
-    mediaPlayer: mediaPlayer.current
+    getMediaPlayer: () => mediaPlayer.current
   }
 }
 
@@ -197,9 +234,44 @@ export const useScreen = () => {
   }
 
 
+  const startScreenCaptureBySourceType = (sourceType: VideoSourceType,
+    config: ScreenCaptureConfiguration) => {
+    let res = rtcEngine?.startScreenCaptureBySourceType(sourceType, config)
+    if (res !== 0) {
+      const msg = `startScreenCaptureBySourceType failed, error code: ${res}`
+      message.error(msg)
+      throw new Error(msg)
+    }
+  }
 
   return {
     getCapWinSources,
-    getCapScreenSources
+    getCapScreenSources,
+    startScreenCaptureBySourceType
   }
 }
+
+
+export const useTransCodeSources = () => {
+  const transCodeSources = useRef<SourceType[]>([])
+
+  const getTransCodeSources = () => transCodeSources.current
+
+  const setTransCodeSources = (sources: SourceType[]) => {
+    transCodeSources.current = sources
+  }
+
+  const pushTransCodeSource = (source: SourceType) => {
+    const exist = transCodeSources.current.findIndex((item) => item.id === source.id)
+    if (exist == -1) {
+      transCodeSources.current.push(source)
+    }
+  }
+
+  return {
+    getTransCodeSources,
+    setTransCodeSources,
+    pushTransCodeSource
+  }
+
+} 

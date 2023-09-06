@@ -9,7 +9,6 @@ import {
 
 let screenShareObj = { firstScreen: false, secondScreen: false, thirdScreen: false }
 let cameraType = { firstCamera: false, secondCamera: false, thirdCamera: false }
-export let transCodeSources: SourceType[] = []
 
 export const objToArray = (obj) =>
   Object.keys(obj).map((key) => ({ key, value: obj[key] }));
@@ -192,7 +191,6 @@ export const getCameraType = () => {
 
 
 export const setCameraTypeStatus = (type, status) => {
-  //let obj = screenShareObj;
   if (type == VideoSourceType.VideoSourceCameraPrimary) {
     cameraType = { firstCamera: status, secondCamera: cameraType["secondCamera"], thirdCamera: cameraType["thirdCamera"] }
   }
@@ -208,10 +206,27 @@ export const setCameraTypeStatus = (type, status) => {
 export const resetData = () => {
   screenShareObj = { firstScreen: false, secondScreen: false, thirdScreen: false }
   cameraType = { firstCamera: false, secondCamera: false, thirdCamera: false }
-  resetTransCodeSources()
 }
 
 
-export const resetTransCodeSources = () => {
-  transCodeSources = []
+export const calcTranscoderOptions = (sources: SourceType[], isHorizontal: boolean) => {
+  let videoInputStreams = sources.map(s => {
+    Object.assign({ connectionId: 0 }, s.source)
+    return s.source
+  })
+  //dimensions 参数设置输出的画面横竖屏
+  let videoOutputConfigurationobj = {
+    dimensions: isHorizontal ? { width: 1280, height: 720 } : { width: 720, height: 1280 },
+    frameRate: 25,
+    bitrate: 0,
+    minBitrate: -1,
+    orientationMode: 0,
+    degradationPreference: 0,
+    mirrorMode: 0
+  }
+  return {
+    streamCount: sources.length,
+    videoInputStreams: videoInputStreams,
+    videoOutputConfiguration: videoOutputConfigurationobj
+  }
 }

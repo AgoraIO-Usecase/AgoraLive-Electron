@@ -17,6 +17,8 @@ interface ConfigProps {
   handleMoveUp?: () => void,
   handleMoveDown?: () => void
 }
+
+
 const SelectBox = (props : ConfigProps) => {
   const [mounted, setMounted] = useState(false);
   const parentDom = useRef<any>(null);
@@ -24,6 +26,7 @@ const SelectBox = (props : ConfigProps) => {
   const [ctxModalPosition, setCtxModalPosition] = useState({top:0, left: 0})
   const [size, setSize] = useState({width: props.width, height: props.height})
   const [isContextMenuDlgOpen, setContextMenuDlgOpen] = useState(false)
+
   useEffect(() => {
     setMounted(true);
     setPosition({
@@ -35,7 +38,7 @@ const SelectBox = (props : ConfigProps) => {
       height: props.height
     })
     parentDom.current = document.getElementById(props.containerId)
-    console.log('------ selectbox parentDom: ',parentDom)
+    
     return () => {
       setMounted(false);
     }
@@ -45,7 +48,6 @@ const SelectBox = (props : ConfigProps) => {
   }
 
   const handleMouseDown = (e) => {
-    console.log('111111target id: ',e.target.id)
     if (e.button === 2) {
         let ctxMenuParent = document.getElementById('select-react')
         if (ctxMenuParent) {
@@ -79,7 +81,6 @@ const SelectBox = (props : ConfigProps) => {
   }
 
   const hanleOnDelete = (e) => {
-    console.log('------e: ',e)
     props.handleDelete!()
   }
 
@@ -101,16 +102,16 @@ const SelectBox = (props : ConfigProps) => {
   }
 
 
-  const handleMenuClick = (e) => {
-    if (e.key === 'moveUp') {
-      // 处理上移一层逻辑
-    } else if (e.key === 'moveDown') {
-      // 处理下移一层逻辑
-    } else if (e.key === 'delete') {
-      // 处理删除逻辑
-    }
-    setContextMenuDlgOpen(false);
-  }
+  // const handleMenuClick = (e) => {
+  //   if (e.key === 'moveUp') {
+  //     // 处理上移一层逻辑
+  //   } else if (e.key === 'moveDown') {
+  //     // 处理下移一层逻辑
+  //   } else if (e.key === 'delete') {
+  //     // 处理删除逻辑
+  //   }
+  //   setContextMenuDlgOpen(false);
+  // }
 
   return ReactDOM.createPortal(
     <Rnd 

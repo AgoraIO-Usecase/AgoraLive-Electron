@@ -1,14 +1,13 @@
 import React, { useState, useCallback, useContext, useEffect, useMemo } from 'react'
 import { Modal, Form, Select, Input, Switch } from 'antd'
 import styles from './videoConfigModal.scss'
-import { VideoCodecType,EncodingPreference,VideoEncoderConfiguration } from 'agora-electron-sdk'
-import { message } from 'antd'
-import RtcEngineContext, { IAppContext } from "../../context/rtcEngineContext"
+import { VideoCodecType, EncodingPreference, VideoEncoderConfiguration } from 'agora-electron-sdk'
+import { useEngine } from '../../utils/hooks'
 
 
-interface IProps {
+interface VideoConfigModalProps {
   isOpen: boolean,
-  onChange: () => void
+  onCancel: () => void
 }
 
 
@@ -22,14 +21,12 @@ const defaultConfig = {
   pvc: true
 }
 
-const VideoConfigModal: React.FC<IProps> = ({isOpen, onChange}) => {
-  const [videoConfig,setVideoConfig] = useState(defaultConfig)
-  const { rtcEngine } = useContext(RtcEngineContext) as IAppContext
+const VideoConfigModal = ({ isOpen, onCancel }: VideoConfigModalProps) => {
+  const [videoConfig, setVideoConfig] = useState(defaultConfig)
+  const { rtcEngine, setVideoEncoderConfiguration } = useEngine()
 
   const handleFormChange = (type, value) => {
-    console.log('type: ',type,'value: ',value)
     setVideoConfig((preConfig) => {
-      console.log('-----config: ',preConfig)
       return {
         ...preConfig,
         [type]: value
@@ -37,7 +34,7 @@ const VideoConfigModal: React.FC<IProps> = ({isOpen, onChange}) => {
     })
   }
 
-  const onOkClick = () => {
+  const onClickOk = () => {
     const config: VideoEncoderConfiguration = {
       dimensions: {
         width: videoConfig.width,
@@ -50,32 +47,25 @@ const VideoConfigModal: React.FC<IProps> = ({isOpen, onChange}) => {
         encodingPreference: videoConfig.method
       }
     }
-    if(videoConfig.encoder === VideoCodecType.VideoCodecH265)
-    {
-      rtcEngine?.setParameters(JSON.stringify({'engine.video.enable_hw_encoder': true}));
-      rtcEngine?.setParameters(JSON.stringify({'che.video.videoCodecIndex': 2}));
-      rtcEngine?.setParameters(JSON.stringify({'che.video.hw265_enc_enable': 1}));
+    if (videoConfig.encoder === VideoCodecType.VideoCodecH265) {
+      rtcEngine.setParameters(JSON.stringify({ 'engine.video.enable_hw_encoder': true }));
+      rtcEngine.setParameters(JSON.stringify({ 'che.video.videoCodecIndex': 2 }));
+      rtcEngine.setParameters(JSON.stringify({ 'che.video.hw265_enc_enable': 1 }));
     }
 
-    if(videoConfig.pvc === true)
-    {
-      rtcEngine?.setParameters(JSON.stringify({"rtc.video.enable_pvc": true}));
+    if (videoConfig.pvc === true) {
+      rtcEngine?.setParameters(JSON.stringify({ "rtc.video.enable_pvc": true }));
       //支持最大分辨率1920*1080=2073600
-      rtcEngine?.setParameters(JSON.stringify({"rtc.video.pvc_max_support_resolution": 2073600}));
-      rtcEngine?.setParameters(JSON.stringify({"rtc.video.saveBitrateParams": {"pvc_720p" : 55.0,"pvc_540p" : 15.0,"pvc_360p" : 15.0}}))
+      rtcEngine?.setParameters(JSON.stringify({ "rtc.video.pvc_max_support_resolution": 2073600 }));
+      rtcEngine?.setParameters(JSON.stringify({ "rtc.video.saveBitrateParams": { "pvc_720p": 55.0, "pvc_540p": 15.0, "pvc_360p": 15.0 } }))
     }
-    else{
-      rtcEngine?.setParameters(JSON.stringify({"rtc.video.enable_pvc": false}));
+    else {
+      rtcEngine?.setParameters(JSON.stringify({ "rtc.video.enable_pvc": false }));
     }
-
-    let ret = rtcEngine?.setVideoEncoderConfiguration(config)
-    console.log('----config: ',config)
-    console.log('----ret: ',ret)
-    if (ret === 0) {
-      onChange()
-    } else {
-      message.info('音视频属性设置失败，请重新设置')
-    }
+    rtcEngine?.updateLocalTranscoderConfiguration({
+      videoOutputConfiguration: config
+    })
+    onCancel()
   }
 
   return (
@@ -84,9 +74,9 @@ const VideoConfigModal: React.FC<IProps> = ({isOpen, onChange}) => {
       okText='修改'
       cancelText='取消'
       width={400}
-      open= {isOpen}
-      onOk={onOkClick}
-      onCancel={onChange}
+      open={isOpen}
+      onOk={onClickOk}
+      onCancel={onCancel}
       centered
       transitionName=''
       maskTransitionName=''
@@ -101,31 +91,31 @@ const VideoConfigModal: React.FC<IProps> = ({isOpen, onChange}) => {
         >
           <Form.Item label="编码分辨率">
             <div className={styles.coder}>
-              <Input value={videoConfig.width} onChange={(e) => { handleFormChange('width', +e.target.value)}}/>
+              <Input value={videoConfig.width} onChange={(e) => { handleFormChange('width', +e.target.value) }} />
               <span>x</span>
-              <Input value={videoConfig.height} onChange={(e) => { handleFormChange('height', +e.target.value)}}/>
+              <Input value={videoConfig.height} onChange={(e) => { handleFormChange('height', +e.target.value) }} />
             </div>
           </Form.Item>
           <Form.Item label="编码帧率(fps)">
-            <Input value={videoConfig.frameRate} onChange={(e) => { handleFormChange('frameRate', +e.target.value)}}/>
+            <Input value={videoConfig.frameRate} onChange={(e) => { handleFormChange('frameRate', +e.target.value) }} />
           </Form.Item>
           <Form.Item label="码率(kbps)">
-            <Input value={videoConfig.codeRate} onChange={(e) => { handleFormChange('codeRate', +e.target.value)}}/>
+            <Input value={videoConfig.codeRate} onChange={(e) => { handleFormChange('codeRate', +e.target.value) }} />
           </Form.Item>
           <Form.Item label="编码器">
-            <Select value={videoConfig.encoder} onChange={(value) => { handleFormChange('encoder', value)}}>
-              <Select.Option  value={VideoCodecType.VideoCodecH265}>H.265</Select.Option>
-              <Select.Option  value={VideoCodecType.VideoCodecH264}>H.264</Select.Option>
+            <Select value={videoConfig.encoder} onChange={(value) => { handleFormChange('encoder', value) }}>
+              <Select.Option value={VideoCodecType.VideoCodecH265}>H.265</Select.Option>
+              <Select.Option value={VideoCodecType.VideoCodecH264}>H.264</Select.Option>
             </Select>
           </Form.Item>
           <Form.Item label="硬编/软编">
-            <Select value={videoConfig.method} onChange={(value) => { handleFormChange('method', value)}}>
-              <Select.Option  value={EncodingPreference.PreferHardware}>硬编</Select.Option>
-              <Select.Option  value={EncodingPreference.PreferSoftware}>软编</Select.Option>
+            <Select value={videoConfig.method} onChange={(value) => { handleFormChange('method', value) }}>
+              <Select.Option value={EncodingPreference.PreferHardware}>硬编</Select.Option>
+              <Select.Option value={EncodingPreference.PreferSoftware}>软编</Select.Option>
             </Select>
           </Form.Item>
           <Form.Item label="PVC">
-            <Switch checked={videoConfig.pvc} onChange={(checkd) => {handleFormChange('pvc',checkd)}}></Switch>
+            <Switch checked={videoConfig.pvc} onChange={(checkd) => { handleFormChange('pvc', checkd) }}></Switch>
           </Form.Item>
         </Form>
       </div>

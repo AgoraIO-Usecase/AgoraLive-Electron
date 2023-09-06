@@ -8,15 +8,14 @@ import InteractiveMsg from '../../component/InteractiveMsg'
 import LivePreview from '../../component/LivePreview'
 import Setting from '../../component/Setting'
 import RtcEngineContext from '../../context/rtcEngineContext'
-import createAgoraRtcEngine from 'agora-electron-sdk'
 import { getRandomInt } from "../../utils"
 
+  // TODO: mock app id 
+  const mockAppId = "d9d6367af4a04f2bb602561a30669946"
 
 const { Sider, Content } = Layout
 
 const Home: React.FC = () => {
-  // TODO: mock app id 
-  const mockAppId = "d9d6367af4a04f2bb602561a30669946"
   const [appId, setAppId] = useState(mockAppId)
   const [channel, setChannel] = useState('')
 
@@ -26,7 +25,6 @@ const Home: React.FC = () => {
     channel,
     setChannel,
     uid: getRandomInt(),
-    rtcEngine: createAgoraRtcEngine(),
     sdkLogPath: './logs/agorasdk.log'
   }
 

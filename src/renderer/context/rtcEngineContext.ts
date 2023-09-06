@@ -8,7 +8,6 @@ export interface IAppContext {
   uid: number,
   setChannel: (channel: string) => void
   setAppId: (appId: string) => void
-  rtcEngine: IRtcEngineEx | null,
   sdkLogPath: string
 }
 
@@ -16,7 +15,6 @@ const initAppData: IAppContext = {
   uid: 0,
   appId: "",
   channel: "",
-  rtcEngine: null,
   setAppId: () => { },
   setChannel: () => { },
   sdkLogPath: ""
