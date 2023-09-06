@@ -108,6 +108,7 @@ export const checkAppId = (appId: string) => {
   if (!appId) {
     const msg = '请输入App ID'
     message.error(msg)
+    throw new Error(msg)
   }
 }
 
