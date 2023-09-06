@@ -10,13 +10,10 @@ import Setting from '../../component/Setting'
 import RtcEngineContext from '../../context/rtcEngineContext'
 import { getRandomInt } from "../../utils"
 
-  // TODO: mock app id 
-  const mockAppId = "d9d6367af4a04f2bb602561a30669946"
-
 const { Sider, Content } = Layout
 
 const Home: React.FC = () => {
-  const [appId, setAppId] = useState(mockAppId)
+  const [appId, setAppId] = useState("")
   const [channel, setChannel] = useState('')
 
   const value = {
