@@ -1,13 +1,13 @@
 declare namespace IndexScssNamespace {
   export interface IIndexScss {
-    "bottom-left": string;
-    "bottom-right": string;
+    'bottom-left': string;
+    'bottom-right': string;
     box: string;
     content: string;
     dlgBody: string;
     resizer: string;
-    "top-left": string;
-    "top-right": string;
+    'top-left': string;
+    'top-right': string;
   }
 }
 

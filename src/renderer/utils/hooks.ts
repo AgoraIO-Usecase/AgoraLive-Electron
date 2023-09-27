@@ -1,5 +1,5 @@
-import { useContext, useState, useRef } from "react"
-import RtcEngineContext from "../context/rtcEngineContext"
+import { useDispatch, useSelector } from 'react-redux';
+import React, { useContext, useState, useRef, useEffect, RefObject } from "react"
 import createAgoraRtcEngine, {
   CameraCapturerConfiguration,
   VideoSourceType,
@@ -16,20 +16,40 @@ import createAgoraRtcEngine, {
   ScreenCaptureSourceInfo,
   ScreenCaptureConfiguration,
   ChannelMediaOptions,
-  IRtcEngineEx
+  IRtcEngineEx,
+  MediaDeviceStateType
 } from 'agora-electron-sdk'
 import { IDevice, SourceType, IDeviceCapacity } from "../types"
 import { message } from "antd"
+import { RootState } from "../store"
+import { calcTranscoderOptions } from "./index"
+import { setDevices } from "../store/reducers/global"
+
+const defaultThumbSize = { width: 320, height: 160 }
+const defaultIconSize = { width: 80, height: 80 }
+const SDK_LOG_PATH = "'./logs/agorasdk.log'"
+
+interface IPreViewOption {
+  videoRef: RefObject<HTMLDivElement>
+}
 
 export const useEngine = () => {
-  const { appId, sdkLogPath } = useContext(RtcEngineContext)
-  const [devices, setDevices] = useState<IDevice[]>([])
-  const rtcEngine = useRef<IRtcEngineEx>(createAgoraRtcEngine())
+  const appId = useSelector((state: RootState) => state.global.appId)
+  const channel = useSelector((state: RootState) => state.global.channel)
+  const token = useSelector((state: RootState) => state.global.token)
+  const uid = useSelector((state: RootState) => state.global.uid)
+  const rtcEngine = useRef<IRtcEngineEx>()
+  const dispatch = useDispatch()
 
   const initEngine = () => {
+    if (!appId) {
+      message.error("appId is empty")
+      return
+    }
+    rtcEngine.current = createAgoraRtcEngine()
     rtcEngine.current.initialize({
       appId: appId,
-      logConfig: { filePath: sdkLogPath },
+      logConfig: { filePath: SDK_LOG_PATH },
       channelProfile: ChannelProfileType.ChannelProfileLiveBroadcasting,
     })
     rtcEngine.current.enableExtension(
@@ -38,29 +58,28 @@ export const useEngine = () => {
       true
     )
     rtcEngine.current.registerEventHandler(eventHandles)
-    initDevices()
+    _initDevices()
   }
 
   const destoryEngine = () => {
-    rtcEngine.current.unregisterEventHandler(eventHandles);
-    rtcEngine.current.release()
+    rtcEngine.current?.unregisterEventHandler(eventHandles);
+    rtcEngine.current?.release()
   }
 
-  const initDevices = () => {
-    const videoDevices = rtcEngine.current.getVideoDeviceManager().enumerateVideoDevices()
+  const _initDevices = () => {
+    const videoDevices = rtcEngine.current?.getVideoDeviceManager().enumerateVideoDevices()
     if (videoDevices && videoDevices.length > 0) {
       const list = videoDevices.map((item) => {
-        let num = rtcEngine.current.getVideoDeviceManager().numberOfCapabilities(item.deviceId!)
+        let num = rtcEngine.current?.getVideoDeviceManager().numberOfCapabilities(item.deviceId!)
         let capacities: IDeviceCapacity[] = []
         if (num && num > 0) {
           for (let i = 0; i < num; i++) {
-            let cap = rtcEngine.current.getVideoDeviceManager().getCapability(item.deviceId!, i)
-            if (cap !== undefined) {
+            let cap = rtcEngine.current?.getVideoDeviceManager().getCapability(item.deviceId!, i)
+            if (cap) {
               capacities.push({
                 width: cap.width!,
                 height: cap.height!,
                 fps: cap.fps!,
-                modifyFps: cap.fps!
               });
             }
           }
@@ -71,7 +90,9 @@ export const useEngine = () => {
           capacity: capacities,
         }
       })
-      setDevices(list)
+      dispatch(setDevices(list))
+    } else {
+      message.warning('没有可用的摄像头')
     }
   }
 
@@ -97,10 +118,16 @@ export const useEngine = () => {
 
     onAudioDeviceStateChanged: (deviceId, deviceType, deviceState) => {
       console.log(`audio device changed:  ${deviceId} ${deviceType} ${deviceState}`)
+      if (deviceState == MediaDeviceStateType.MediaDeviceStateIdle || deviceState == MediaDeviceStateType.MediaDeviceStateUnplugged) {
+        _initDevices()
+      }
     },
 
     onVideoDeviceStateChanged: (deviceId, deviceType, deviceState) => {
       console.log(`video device changed: ${deviceId} ${deviceType} ${deviceState}`)
+      if (deviceState == MediaDeviceStateType.MediaDeviceStateIdle || deviceState == MediaDeviceStateType.MediaDeviceStateUnplugged) {
+        _initDevices()
+      }
     },
 
     onLocalVideoStats: (connection, stats) => {
@@ -109,30 +136,20 @@ export const useEngine = () => {
 
   }
 
-  const updateDevices = (data) => {
-    setDevices((preDevices) => {
-      const newDevices = [...preDevices]
-      const device = newDevices[data.selectedDevice]
-      if (device) {
-        const capacity = device.capacity[data.selectCap]
-        if (capacity) {
-          capacity.modifyFps = parseInt(data.fps)
-        }
-      }
-      return newDevices
-    })
-  }
 
   const setVideoEncoderConfiguration = (config: VideoEncoderConfiguration) => {
-    const res = rtcEngine.current.setVideoEncoderConfiguration(config)
+    const res = rtcEngine.current?.setVideoEncoderConfiguration(config)
     if (res !== 0) {
       const msg = `setVideoEncoderConfiguration failed, error code: ${res}`
       throw new Error(msg)
     }
   }
 
-  const joinChannel = (token: string, channelId: string, uid: number, options: ChannelMediaOptions) => {
-    const res = rtcEngine.current.joinChannel(token, channelId, uid, options)
+  const joinChannel = (options: ChannelMediaOptions) => {
+    if (!channel) {
+      return message.info('频道号不为空，请输入频道号')
+    }
+    const res = rtcEngine.current?.joinChannel(token, channel, uid, options)
     if (res !== 0) {
       const msg = `joinChannel failed, error code: ${res}`
       throw new Error(msg)
@@ -142,7 +159,7 @@ export const useEngine = () => {
   }
 
   const leaveChannel = () => {
-    const res = rtcEngine.current.leaveChannel()
+    const res = rtcEngine.current?.leaveChannel()
     if (res !== 0) {
       const msg = `leaveChannel failed, error code: ${res}`
       throw new Error(msg)
@@ -155,8 +172,6 @@ export const useEngine = () => {
     rtcEngine: rtcEngine.current,
     initEngine,
     destoryEngine,
-    devices,
-    updateDevices,
     setVideoEncoderConfiguration,
     joinChannel,
     leaveChannel
@@ -165,7 +180,7 @@ export const useEngine = () => {
 
 
 export const useMediaPlayer = () => {
-  const mediaPlayer = useRef<IMediaPlayer | null>(null)
+  const mediaPlayer = useRef<IMediaPlayer>()
   const { rtcEngine } = useEngine()
 
   const mediaPlayerListener: IMediaPlayerSourceObserver = {
@@ -193,7 +208,7 @@ export const useMediaPlayer = () => {
       return
     }
     mediaPlayer.current = rtcEngine?.createMediaPlayer()
-    mediaPlayer.current.registerPlayerSourceObserver(mediaPlayerListener)
+    mediaPlayer.current?.registerPlayerSourceObserver(mediaPlayerListener)
   }
 
   const destroyMediaPlayer = () => {
@@ -201,7 +216,7 @@ export const useMediaPlayer = () => {
       return;
     }
     rtcEngine?.destroyMediaPlayer(mediaPlayer.current);
-    mediaPlayer.current = null
+    mediaPlayer.current = undefined
   }
 
 
@@ -213,12 +228,11 @@ export const useMediaPlayer = () => {
 }
 
 
-
 export const useScreen = () => {
   const { rtcEngine } = useEngine()
 
   const getCapScreenSources = (): ScreenCaptureSourceInfo[] => {
-    let capScreenSources = rtcEngine?.getScreenCaptureSources({ width: 320, height: 160 }, { width: 80, height: 80 }, true)
+    let capScreenSources = rtcEngine?.getScreenCaptureSources(defaultThumbSize, defaultIconSize, true)
     const items = capScreenSources!.filter((item) => {
       return item.type === ScreenCaptureSourceType.ScreencapturesourcetypeScreen
     })
@@ -226,7 +240,7 @@ export const useScreen = () => {
   }
 
   const getCapWinSources = (): ScreenCaptureSourceInfo[] => {
-    let capScreenSources = rtcEngine?.getScreenCaptureSources({ width: 320, height: 160 }, { width: 80, height: 80 }, true)
+    let capScreenSources = rtcEngine?.getScreenCaptureSources(defaultThumbSize, defaultIconSize, true)
     const items = capScreenSources!.filter((item) => {
       return item.type === ScreenCaptureSourceType.ScreencapturesourcetypeWindow
     })
@@ -234,8 +248,10 @@ export const useScreen = () => {
   }
 
 
-  const startScreenCaptureBySourceType = (sourceType: VideoSourceType,
-    config: ScreenCaptureConfiguration) => {
+  const startScreenCaptureBySourceType = (
+    sourceType: VideoSourceType,
+    config: ScreenCaptureConfiguration
+  ) => {
     let res = rtcEngine?.startScreenCaptureBySourceType(sourceType, config)
     if (res !== 0) {
       const msg = `startScreenCaptureBySourceType failed, error code: ${res}`
@@ -251,27 +267,55 @@ export const useScreen = () => {
   }
 }
 
+export const usePreview = ({ videoRef }: IPreViewOption) => {
+  const { rtcEngine } = useEngine()
+  const firstPreview = useRef<boolean>(true)
+  const transCodeSources = useSelector((state: RootState) => state.global.transCodeSources)
+  const isPreview = useSelector((state: RootState) => state.global.isPreview)
+  const isHorizontal = useSelector((state: RootState) => state.global.isHorizontal)
+  const uid = useSelector((state: RootState) => state.global.uid)
 
-export const useTransCodeSources = () => {
-  const transCodeSources = useRef<SourceType[]>([])
-
-  const getTransCodeSources = () => transCodeSources.current
-
-  const setTransCodeSources = (sources: SourceType[]) => {
-    transCodeSources.current = sources
+  const startPreview = () => {
+    firstPreview.current = false
+    rtcEngine?.startLocalVideoTranscoder(calcTranscoderOptions(transCodeSources, isHorizontal));
   }
 
-  const pushTransCodeSource = (source: SourceType) => {
-    const exist = transCodeSources.current.findIndex((item) => item.id === source.id)
-    if (exist == -1) {
-      transCodeSources.current.push(source)
+  const updatePreview = () => {
+    rtcEngine?.updateLocalTranscoderConfiguration(calcTranscoderOptions(transCodeSources, isHorizontal))
+  }
+
+  const stopPreview = () => {
+    firstPreview.current = true
+    let ret = rtcEngine?.stopLocalVideoTranscoder()
+    ret = rtcEngine?.setupLocalVideo({
+      sourceType: VideoSourceType.VideoSourceTranscoded,
+      view: null,
+      uid: uid,
+      mirrorMode: VideoMirrorModeType.VideoMirrorModeDisabled,
+      renderMode: RenderModeType.RenderModeFit,
+    });
+    while (videoRef.current?.firstChild) {
+      videoRef.current?.removeChild(videoRef.current?.firstChild);
     }
+    rtcEngine?.stopPreview()
   }
 
-  return {
-    getTransCodeSources,
-    setTransCodeSources,
-    pushTransCodeSource
-  }
+  useEffect(() => {
+    if (isPreview) {
+      if (firstPreview.current) {
+        startPreview()
+      } else {
+        updatePreview()
+      }
+    } else {
+      stopPreview()
+    }
 
-} 
+    return () => {
+      if (isPreview) {
+        stopPreview()
+      }
+    }
+
+  }, [isPreview, isHorizontal, transCodeSources])
+}

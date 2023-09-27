@@ -5,7 +5,6 @@ export interface IDeviceCapacity {
   width: number,
   height: number,
   fps: number,
-  modifyFps: number
 }
 
 export interface IDevice {
@@ -13,6 +12,8 @@ export interface IDevice {
   deviceName: string
   capacity: IDeviceCapacity[]
 }
+
+
 
 export interface SourceType {
   id: string,
