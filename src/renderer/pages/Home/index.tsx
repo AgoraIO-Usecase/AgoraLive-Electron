@@ -7,25 +7,41 @@ import Microphone from '../../component/Microphone'
 import InteractiveMsg from '../../component/InteractiveMsg'
 import LivePreview from '../../component/LivePreview'
 import Setting from '../../component/Setting'
+import RtcEngineContext from '../../context/rtcEngineContext'
+import { getRandomInt } from "../../utils"
 
 const { Sider, Content } = Layout
 
 const Home: React.FC = () => {
+  const [appId, setAppId] = useState("")
+  const [channel, setChannel] = useState('')
+
+  const value = {
+    appId,
+    setAppId,
+    channel,
+    setChannel,
+    uid: getRandomInt(),
+    sdkLogPath: './logs/agorasdk.log'
+  }
+
   return (
-    <Layout className={styles.home}>
-      <Sider width={240} className={styles.siderLeft}>
-        <Template />
-        <LiveTool />
-      </Sider>
-      <Content className={styles.main}>
-        <LivePreview />
-        <Setting />
-      </Content>
-      <Sider width={240} className={styles.siderRight}>
-        <Microphone />
-        <InteractiveMsg />
-      </Sider>
-    </Layout>
+    <RtcEngineContext.Provider value={value}>
+      <Layout className={styles.home}>
+        <Sider width={240} className={styles.siderLeft}>
+          <Template />
+          <LiveTool />
+        </Sider>
+        <Content className={styles.main}>
+          <LivePreview />
+          <Setting />
+        </Content>
+        <Sider width={240} className={styles.siderRight}>
+          <Microphone />
+          <InteractiveMsg />
+        </Sider>
+      </Layout>
+    </RtcEngineContext.Provider>
   )
 }
 

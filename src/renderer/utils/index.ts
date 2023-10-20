@@ -4,9 +4,8 @@ import { IDevice, SourceType, IDeviceCapacity } from "../types"
 import {
   CameraCapturerConfiguration,
   VideoSourceType,
-  TranscodingVideoStream,
 } from 'agora-electron-sdk'
-import { MIN_WIDTH, MIN_HEIGHT } from "./constant"
+
 
 let screenShareObj = { firstScreen: false, secondScreen: false, thirdScreen: false }
 let cameraType = { firstCamera: false, secondCamera: false, thirdCamera: false }
@@ -109,25 +108,40 @@ export const checkAppId = (appId: string) => {
   if (!appId) {
     const msg = '请输入App ID'
     message.error(msg)
+    throw new Error(msg)
   }
 }
 
 
-export const getShareScreenType = (): VideoSourceType | -1 => {
+
+export const getShareScreenType = () => {
+  let index = -1;
+  let type = -1
   if (screenShareObj["firstScreen"]) {
     if (screenShareObj["secondScreen"]) {
-      if (screenShareObj["thirdScreen"]) {
-        message.info('最多开启3个窗口分享');
-        return -1
-      } else {
-        return VideoSourceType.VideoSourceScreenThird
-      }
+      index = screenShareObj["thirdScreen"] ? -1 : 3;
     } else {
-      return VideoSourceType.VideoSourceScreenSecondary
+      index = 2;
     }
   } else {
-    return VideoSourceType.VideoSourceScreenPrimary
+    index = 1;
   }
+  if (index == -1) {
+    message.info('最多开启3个窗口分享');
+    return type;
+  }
+
+  if (index == 1) {
+    type = VideoSourceType.VideoSourceScreenPrimary
+  }
+  else if (index == 2) {
+    type = VideoSourceType.VideoSourceScreenSecondary
+  }
+  else {
+    type = VideoSourceType.VideoSourceScreenThird
+  }
+
+  return type;
 }
 
 
@@ -178,16 +192,14 @@ export const getCameraType = () => {
 
 
 export const setCameraTypeStatus = (type, status) => {
-  switch (type) {
-    case VideoSourceType.VideoSourceCameraPrimary:
-      cameraType = { firstCamera: status, secondCamera: cameraType["secondCamera"], thirdCamera: cameraType["thirdCamera"] }
-      break;
-    case VideoSourceType.VideoSourceCameraSecondary:
-      cameraType = { firstCamera: cameraType["firstCamera"], secondCamera: status, thirdCamera: cameraType["thirdCamera"] }
-      break;
-    case VideoSourceType.VideoSourceCameraThird:
-      cameraType = { firstCamera: cameraType["firstCamera"], secondCamera: cameraType["secondCamera"], thirdCamera: status }
-      break;
+  if (type == VideoSourceType.VideoSourceCameraPrimary) {
+    cameraType = { firstCamera: status, secondCamera: cameraType["secondCamera"], thirdCamera: cameraType["thirdCamera"] }
+  }
+  else if (type == VideoSourceType.VideoSourceCameraSecondary) {
+    cameraType = { firstCamera: cameraType["firstCamera"], secondCamera: status, thirdCamera: cameraType["thirdCamera"] }
+  }
+  else {
+    cameraType = { firstCamera: cameraType["firstCamera"], secondCamera: cameraType["secondCamera"], thirdCamera: status }
   }
 }
 
@@ -218,48 +230,4 @@ export const calcTranscoderOptions = (sources: SourceType[], isHorizontal: boole
     videoInputStreams: videoInputStreams,
     videoOutputConfiguration: videoOutputConfigurationobj
   }
-}
-
-
-export const transVideoSourceType = (srcUrl: string, type: string) => {
-  if (type === 'image') {
-    if (srcUrl.endsWith('.png')) {
-      return VideoSourceType.VideoSourceRtcImagePng
-    } else {
-      return VideoSourceType.VideoSourceRtcImageJpeg
-    }
-  } else if (type === 'gif') {
-    return VideoSourceType.VideoSourceRtcImageGif
-  } else if (type === 'video') {
-    return VideoSourceType.VideoSourceMediaPlayer
-  }
-}
-
-
-export const genBaseSource = (): TranscodingVideoStream => {
-  return {
-    x: 0,
-    y: 0,
-    width: MIN_WIDTH,
-    height: MIN_HEIGHT,
-    zOrder: 0,
-    alpha: 1,
-  } as TranscodingVideoStream
-}
-
-
-// VideoSourceType
-// VideoSourceCamera
-export const isVideoSourceTypeCamera = (sourceType: VideoSourceType | undefined): boolean => {
-  return sourceType === VideoSourceType.VideoSourceCamera ||
-    sourceType === VideoSourceType.VideoSourceCameraSecondary ||
-    sourceType === VideoSourceType.VideoSourceCameraThird
-}
-
-
-
-export const isVideoSourceTypeScreen = (sourceType: VideoSourceType | undefined): boolean => {
-  return sourceType === VideoSourceType.VideoSourceScreenPrimary ||
-    sourceType === VideoSourceType.VideoSourceScreenSecondary ||
-    sourceType === VideoSourceType.VideoSourceScreenThird
 }

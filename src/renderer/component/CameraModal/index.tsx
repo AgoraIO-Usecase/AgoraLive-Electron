@@ -1,51 +1,67 @@
 import React, { useState, useCallback, useContext, useEffect, useMemo } from 'react'
 import { Modal, Form, Select, Input } from 'antd'
-import { useSelector, useDispatch } from "react-redux"
-import { RootState } from "../../store"
-import { setFrameRate, setCameraIndex, setCapacityIndex } from "../../store/reducers/global"
 import styles from './cameraModal.scss'
 
 interface IProps {
   isOpen: boolean,
-  onOk?: () => void,
-  onCancel?: () => void,
-  onSelectChange?: (key: string, value: any) => void
+  devices: IDevice[],
+  deviceIndex: number,
+  capacityIndex: number
+  onOk: (data: any) => void,
+  onCancel: () => void,
+  onSelectChange?: (key:string, value:any) => void
 }
 
-const CameraModal: React.FC<IProps> = ({ isOpen, onOk, onCancel }) => {
-  const devices = useSelector((state: RootState) => state.global.devices)
-  const cameraIndex = useSelector((state: RootState) => state.global.cameraIndex)
-  const capacityIndex = useSelector((state: RootState) => state.global.capacityIndex)
-  const frameRate = useSelector((state: RootState) => state.global.frameRate)
-  const dispatch = useDispatch()
+const getDefaultFormData = () => ({
 
-  useEffect(() => {
-    const fps = devices[cameraIndex]?.capacity[capacityIndex]?.fps
-    if (fps) {
-      dispatch(setFrameRate(fps))
-    }
-  }, [cameraIndex, capacityIndex, devices])
+  camera: 'demo111',
+  resolution: 'demo',
+  frameRate: '',
+})
 
+interface IDeviceCapacity {
+  width: number,
+  height: number,
+  fps: number,
+  modifyFps: number
+}
+
+interface IDevice {
+  deviceId: string,
+  deviceName: string
+  capacity: IDeviceCapacity[]
+}
+
+
+const CameraModal: React.FC<IProps> = ({isOpen, deviceIndex, capacityIndex, devices, onOk, onCancel}) => {
+  const [devIndex, setDevIndex] = useState(deviceIndex)
+  const [capIndex, setCapIndex] = useState(capacityIndex)
+  const [frameRate, setFrameRate] = useState<number>(devices[deviceIndex].capacity[capacityIndex].modifyFps||0)
 
   const formChange = (key, value) => {
     if (key === 'camera') {
-      dispatch(setCameraIndex(value))
-      dispatch(setCapacityIndex(0))
-    } else if (key === 'resolution') {
-      dispatch(setCapacityIndex(value))
-    } else if (key === 'frameRate') {
-      dispatch(setFrameRate(value)) 
+      setDevIndex(value)
+      setCapIndex(0)
+      setFrameRate(devices[value].capacity[0]!.modifyFps)
+    }else if (key === 'resolution') {
+      setCapIndex(value)
+      setFrameRate(devices[devIndex].capacity[value]!.modifyFps)
+    }else if (key === 'frameRate') {
+      setFrameRate(value)
     }
   }
 
 
   const handleAdd = () => {
-    onOk?.()
+    let confirmData = {
+      selectedDevice: devIndex,
+      selectCap: capIndex,
+      fps: frameRate
+    }
+    onOk(confirmData)
   }
 
-  const capInfo = useMemo(() => {
-    return devices[cameraIndex].capacity
-  }, [devices, cameraIndex])
+  const capInfo = devices[devIndex].capacity
 
   return (
     <Modal
@@ -53,7 +69,7 @@ const CameraModal: React.FC<IProps> = ({ isOpen, onOk, onCancel }) => {
       okText='添加'
       cancelText='取消'
       width={400}
-      open={isOpen}
+      open= {isOpen}
       onOk={handleAdd}
       onCancel={onCancel}
       centered
@@ -69,9 +85,9 @@ const CameraModal: React.FC<IProps> = ({ isOpen, onOk, onCancel }) => {
           labelAlign='left'
         >
           <Form.Item label="摄像头">
-            <Select value={cameraIndex} onChange={(value) => { formChange('camera', value) }}>
+            <Select value={devIndex} onChange={(value) => { formChange('camera', value)}}>
               {
-                devices.map((item, index) => {
+                devices.map((item,index) => {
                   return (
                     <Select.Option key={item.deviceId} value={index}>{item.deviceName}</Select.Option>
                   )
@@ -80,7 +96,7 @@ const CameraModal: React.FC<IProps> = ({ isOpen, onOk, onCancel }) => {
             </Select>
           </Form.Item>
           <Form.Item label="分辨率">
-            <Select value={capacityIndex} onChange={(value) => { formChange('resolution', value) }}>
+            <Select value={capIndex} onChange={(value) => { formChange('resolution', value)}}>
               {
                 capInfo?.map((cap, index) => {
                   return (
@@ -91,7 +107,7 @@ const CameraModal: React.FC<IProps> = ({ isOpen, onOk, onCancel }) => {
             </Select>
           </Form.Item>
           <Form.Item label="帧率(fps)">
-            <Input value={frameRate} onChange={(e) => { formChange('frameRate', e.target.value) }} />
+            <Input value={frameRate} onChange={(e) => { formChange('frameRate', e.target.value)}}/>
           </Form.Item>
         </Form>
       </div>

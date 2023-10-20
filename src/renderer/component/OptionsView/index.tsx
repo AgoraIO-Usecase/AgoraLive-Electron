@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect, useContext } from "react"
 import { getResourcePath, checkAppId, getShareScreenType, setScreenShareObjStatus } from '../../utils/index'
 import { message, Dropdown, Menu } from 'antd'
 import { useEngine, useScreen } from "../../utils/hooks"
+import RtcEngineContext from "../../context/rtcEngineContext"
 import { DownOutlined, UpOutlined } from '@ant-design/icons'
 import { app, ipcRenderer } from 'electron'
 import styles from '../LivePreview/livePreview.scss'
 import { MIN_HEIGHT, MIN_WIDTH } from "../../utils/constant"
-import { useSelector, useDispatch } from "react-redux"
-import { RootState } from "../../store"
-import { addTransCodeSource } from "../../store/reducers/global"
+import { useTransCodeSources } from "../../utils/hooks"
+
 
 const optConfig = [
   {
@@ -34,7 +34,6 @@ const optConfig = [
 ]
 
 
-
 interface OptionsViewProps {
   handleOptClick: React.MouseEventHandler,
   handlePreview: () => void,
@@ -49,13 +48,11 @@ const OptionsView = ({
   setCapWinModalOpen,
   setCapScreenModalOpen
 }: OptionsViewProps) => {
-  const appId = useSelector((state: RootState) => state.global.appId)
-  const uid = useSelector((state: RootState) => state.global.uid)
+  const { appId, uid, } = useContext(RtcEngineContext)
   const { getCapScreenSources, startScreenCaptureBySourceType } = useScreen()
   const [isCaptureMenuOpen, setCaptureMenuOpen] = useState(false)
   const [isMediaMenuOpen, setMediaMenuOpen] = useState(false)
-  const transCodeSources = useSelector((state: RootState) => state.global.transCodeSources)
-  const dispatch = useDispatch()
+  const { setTransCodeSources, getTransCodeSources } = useTransCodeSources()
 
   const captureMenuOpenChange = (value) => {
     setCaptureMenuOpen(value)
@@ -90,11 +87,13 @@ const OptionsView = ({
         excludeWindowCount: 0,
       }
     })
+    const transCodeSources = getTransCodeSources()
     let existIndex = transCodeSources.findIndex((item) => {
+      //return item.source.sourceType === type
       return item.id === fullScreenSource.sourceId
     })
     if (existIndex < 0) {
-      addTransCodeSource({
+      transCodeSources.push({
         id: fullScreenSource.sourceId,
         source: {
           sourceType: type,
@@ -106,6 +105,7 @@ const OptionsView = ({
           alpha: 1
         }
       })
+      setTransCodeSources(transCodeSources)
       setScreenShareObjStatus(type, true)
     }
     handlePreview()

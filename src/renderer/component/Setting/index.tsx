@@ -4,17 +4,16 @@ import { Divider, Slider, Input, Button } from 'antd'
 import { getResourcePath, checkAppId } from '../../utils/index'
 import { useEngine } from "../../utils/hooks"
 import { ChannelProfileType, IRtcEngineEventHandler, ClientRoleType } from 'agora-electron-sdk'
+import RtcEngineContext from "../../context/rtcEngineContext"
 import VideoConfigModal from '../VideoConfigModal'
 import { message } from 'antd'
-import { useDispatch, useSelector } from "react-redux"
-import { RootState } from "../../store"
-import { setChannel, setAppId } from '../../store/reducers/global'
 
 const voiceIcon = getResourcePath('voice.png')
 const voiceDisableIcon = getResourcePath('voiceDisable.png')
 const microIcon = getResourcePath('microphone.png')
 const microDisableIcon = getResourcePath('microDisable.png')
 const settingIcon = getResourcePath('appSetting.png')
+const localUid = 0
 
 const Setting: React.FC = () => {
   const [joined, setJoined] = useState(false)
@@ -25,26 +24,20 @@ const Setting: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
   const voiceVolumeRef = useRef(voiceVolume)
   const microVolumeRef = useRef(microVolume)
-  const appId = useSelector((state: RootState) => state.global.appId)
-  const channel = useSelector((state: RootState) => state.global.channel)
+  const { appId, setAppId, channel, setChannel } = useContext(RtcEngineContext)
   const { rtcEngine, joinChannel, leaveChannel } = useEngine()
-  const dispatch = useDispatch()
 
-  useEffect(() => {
-    if (isOpen) {
-      checkAppId(appId)
-    }
-  }, [appId, isOpen])
 
   const onChannelChange = (e) => {
-    dispatch(setChannel(e.target.value))
+    setChannel(e.target.value)
   }
 
   const onAppIdChange = (e) => {
-    dispatch(setAppId(e.target.value))
+    setAppId(e.target.value)
   }
 
   const handleVoiceStatus = (e) => {
+    checkAppId(appId)
     if (!disableVoice) {
       voiceVolumeRef.current = voiceVolume
       setVoiceNum(0)
@@ -57,6 +50,7 @@ const Setting: React.FC = () => {
   }
 
   const handleMicroStatus = (e) => {
+    checkAppId(appId)
     if (!disableMicro) {
       microVolumeRef.current = microVolume
       setMicroVolume(0)
@@ -69,22 +63,29 @@ const Setting: React.FC = () => {
   }
 
   const onVoiceAfterChange = (v) => {
+    checkAppId(appId)
     setVoiceNum(v)
     rtcEngine?.adjustPlaybackSignalVolume(v);
     console.log('onVoiceAfterChange: ', v)
   }
 
   const onMicAfterChange = (v) => {
+    checkAppId(appId)
     setMicroVolume(v)
     rtcEngine?.adjustRecordingSignalVolume(v);
     console.log('onMicAfterChange: ', v)
   }
 
   const handleJoinChannel = () => {
+    checkAppId(appId)
+    if (channel.trim() === '') {
+      message.info('频道号不为空，请输入频道号')
+      return
+    }
     if (!joined) {
       rtcEngine?.setChannelProfile(1)
       rtcEngine?.setAudioProfile(0, 3)
-      joinChannel({
+      joinChannel('', channel, localUid, {
         // Make myself as the broadcaster to send stream to remote
         clientRoleType: ClientRoleType.ClientRoleBroadcaster,
         publishMicrophoneTrack: true,
@@ -102,8 +103,14 @@ const Setting: React.FC = () => {
 
 
   const onSettingClick = () => {
+    if (!appId) {
+      message.info('请输入正确App ID')
+      return
+    }
     setIsOpen(true)
   }
+
+
 
 
   return (
